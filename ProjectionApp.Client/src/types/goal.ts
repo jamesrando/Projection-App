@@ -1,3 +1,12 @@
+export interface MonthlyProjectionPoint {
+  month: number
+  investments: number
+  savings: number
+  totalPosition: number
+  cumulativeContributions: number
+  cumulativeInterest: number
+}
+
 export interface GoalBreakdown {
   currentInvestments: number
   currentCashSavings: number
@@ -29,4 +38,5 @@ export interface Reach100kGoalResult {
   isGoalMet: boolean
   isReachable: boolean
   breakdown: GoalBreakdown
+  monthlySeries: MonthlyProjectionPoint[] | null
 }

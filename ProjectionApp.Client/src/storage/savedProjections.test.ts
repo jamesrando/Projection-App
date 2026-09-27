@@ -36,6 +36,7 @@ const sampleResult: Reach100kGoalResult = {
     savingsInterestEarned: null,
     totalInterestEarned: null,
   },
+  monthlySeries: null,
 }
 
 function createSessionStorageMock(): Storage {

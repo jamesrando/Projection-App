@@ -15,4 +15,5 @@ public sealed record Reach100kGoalResultDto(
     bool ContributionsInferredFromSalary,
     bool IsGoalMet,
     bool IsReachable,
-    GoalBreakdownDto Breakdown);
+    GoalBreakdownDto Breakdown,
+    IReadOnlyList<MonthlyProjectionPointDto>? MonthlySeries);

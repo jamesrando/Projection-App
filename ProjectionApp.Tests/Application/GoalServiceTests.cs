@@ -76,6 +76,47 @@ public class GoalServiceTests
     }
 
     [Fact]
+    public async Task AnalyzeReach100kAsync_ReturnsMonthlySeriesWithStartingPointAndGoalMonth()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            AnnualSalary = 100_000m,
+            CurrentInvestments = 50_000m,
+            CurrentCashSavings = 25_000m,
+        });
+
+        var service = new GoalService(repository);
+
+        var result = await service.AnalyzeReach100kAsync();
+
+        Assert.NotNull(result.MonthlySeries);
+        Assert.Equal(23, result.MonthlySeries.Count);
+        Assert.Equal(0, result.MonthlySeries[0].Month);
+        Assert.Equal(75_000m, result.MonthlySeries[0].TotalPosition);
+        Assert.Equal(0m, result.MonthlySeries[0].CumulativeContributions);
+        Assert.Equal(22, result.MonthlySeries[^1].Month);
+        Assert.True(result.MonthlySeries[^1].TotalPosition >= result.TargetAmount);
+    }
+
+    [Fact]
+    public async Task AnalyzeReach100kAsync_ReturnsSinglePointSeriesWhenGoalAlreadyMet()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            CurrentInvestments = 80_000m,
+            CurrentCashSavings = 30_000m,
+        });
+
+        var service = new GoalService(repository);
+
+        var result = await service.AnalyzeReach100kAsync();
+
+        Assert.NotNull(result.MonthlySeries);
+        Assert.Single(result.MonthlySeries);
+        Assert.Equal(110_000m, result.MonthlySeries[0].TotalPosition);
+    }
+
+    [Fact]
     public async Task AnalyzeReach100kAsync_ThrowsWhenProfileMissing()
     {
         var service = new GoalService(new FakeUserProfileRepository(null));

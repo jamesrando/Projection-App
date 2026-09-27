@@ -54,6 +54,10 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
                 savingsMonthlyRate,
                 targetAmount);
 
+        var monthlySeries = isGoalMet
+            ? [CreateMonthlyPoint(0, currentInvestments, currentCashSavings, 0m, 0m)]
+            : projection?.MonthlySeries;
+
         var estimatedMonths = isGoalMet ? 0 : projection?.MonthsToGoal;
         decimal? estimatedYears = estimatedMonths is null
             ? null
@@ -68,6 +72,8 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             ? 0m
             : Math.Round(currentCashSavings / currentPosition * 100m, 1, MidpointRounding.AwayFromZero);
 
+        var goalReached = projection?.MonthsToGoal is not null;
+
         var breakdown = new GoalBreakdownDto(
             currentInvestments,
             currentCashSavings,
@@ -75,12 +81,12 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             savingsSharePercent,
             currentInvestments * investmentMonthlyRate + monthlyContribution,
             currentCashSavings * savingsMonthlyRate,
-            projection?.ProjectedInvestments,
-            projection?.ProjectedCashSavings,
-            projection?.TotalContributionsAdded,
-            projection?.InvestmentInterestEarned,
-            projection?.SavingsInterestEarned,
-            projection?.TotalInterestEarned);
+            goalReached ? projection!.ProjectedInvestments : null,
+            goalReached ? projection!.ProjectedCashSavings : null,
+            goalReached ? projection!.TotalContributionsAdded : null,
+            goalReached ? projection!.InvestmentInterestEarned : null,
+            goalReached ? projection!.SavingsInterestEarned : null,
+            goalReached ? projection!.TotalInterestEarned : null);
 
         return new Reach100kGoalResultDto(
             targetAmount,
@@ -97,19 +103,35 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             contributionsInferredFromSalary,
             isGoalMet,
             isReachable,
-            breakdown);
+            breakdown,
+            monthlySeries);
     }
 
     private sealed record ProjectionSnapshot(
-        int MonthsToGoal,
+        int? MonthsToGoal,
         decimal ProjectedInvestments,
         decimal ProjectedCashSavings,
         decimal TotalContributionsAdded,
         decimal InvestmentInterestEarned,
-        decimal SavingsInterestEarned)
+        decimal SavingsInterestEarned,
+        IReadOnlyList<MonthlyProjectionPointDto> MonthlySeries)
     {
         public decimal TotalInterestEarned => InvestmentInterestEarned + SavingsInterestEarned;
     }
+
+    private static MonthlyProjectionPointDto CreateMonthlyPoint(
+        int month,
+        decimal investments,
+        decimal savings,
+        decimal cumulativeContributions,
+        decimal cumulativeInterest) =>
+        new(
+            month,
+            investments,
+            savings,
+            investments + savings,
+            cumulativeContributions,
+            cumulativeInterest);
 
     private static ProjectionSnapshot? SimulateToGoal(
         decimal investments,
@@ -132,6 +154,10 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
         var totalContributionsAdded = 0m;
         var investmentInterestEarned = 0m;
         var savingsInterestEarned = 0m;
+        var monthlySeries = new List<MonthlyProjectionPointDto>
+        {
+            CreateMonthlyPoint(0, investments, savings, 0m, 0m),
+        };
 
         const int maxMonths = 100 * 12;
         for (var month = 1; month <= maxMonths; month++)
@@ -144,6 +170,13 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             investmentInterestEarned += investmentInterest;
             savingsInterestEarned += savingsInterest;
 
+            monthlySeries.Add(CreateMonthlyPoint(
+                month,
+                investments,
+                savings,
+                totalContributionsAdded,
+                investmentInterestEarned + savingsInterestEarned));
+
             if (investments + savings >= targetAmount)
             {
                 return new ProjectionSnapshot(
@@ -152,10 +185,18 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
                     savings,
                     totalContributionsAdded,
                     investmentInterestEarned,
-                    savingsInterestEarned);
+                    savingsInterestEarned,
+                    monthlySeries);
             }
         }
 
-        return null;
+        return new ProjectionSnapshot(
+            null,
+            investments,
+            savings,
+            totalContributionsAdded,
+            investmentInterestEarned,
+            savingsInterestEarned,
+            monthlySeries);
     }
 }

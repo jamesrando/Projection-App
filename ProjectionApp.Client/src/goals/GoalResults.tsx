@@ -3,6 +3,7 @@ import { StatCard } from '../components/StatCard'
 import { formatCurrency } from '../format/currency'
 import { formatPercent } from '../format/percent'
 import type { GoalBreakdown, Reach100kGoalResult } from '../types/goal'
+import { GoalTimelineChart } from './GoalTimelineChart'
 
 function formatYears(years: number): string {
   const text = years.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')
@@ -257,6 +258,22 @@ export function GoalResults({ result }: { result: Reach100kGoalResult }) {
           />
         </div>
       </section>
+
+      {result.monthlySeries && result.monthlySeries.length > 1 && (
+        <GoalPanel
+          title="Growth over time"
+          description="Projected balance month by month until you reach your goal."
+          className="goal-panel--wide"
+        >
+          <GoalTimelineChart
+            monthlySeries={result.monthlySeries}
+            targetAmount={result.targetAmount}
+            currentPosition={result.currentPosition}
+            estimatedMonthsToGoal={result.estimatedMonthsToGoal}
+            isReachable={result.isReachable}
+          />
+        </GoalPanel>
+      )}
 
       <div className="goal-panels">
         <GoalPanel title="Current position" description="How your total balance is split today.">
