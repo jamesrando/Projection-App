@@ -1,0 +1,137 @@
+.app {
+  min-height: 100svh;
+  padding: 2.5rem 1.5rem 3rem;
+}
+
+.app__header {
+  max-width: 960px;
+  margin: 0 auto 2rem;
+}
+
+.app__eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.app__header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  line-height: 1.1;
+  color: var(--text-h);
+}
+
+.app__subtitle {
+  margin: 0.75rem 0 0;
+  max-width: 36rem;
+  color: var(--text-muted);
+}
+
+.app__main {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.app__status {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.app__error {
+  padding: 1.25rem;
+  border: 1px solid #f5c2c7;
+  border-radius: 12px;
+  background: #fff5f5;
+  color: #842029;
+}
+
+.app__error p {
+  margin: 0.5rem 0 0;
+}
+
+.app__hint {
+  font-size: 0.9375rem;
+  color: #a94442;
+}
+
+.projection-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 720px) {
+  .projection-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.projection-card {
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.projection-card__header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  color: var(--text-h);
+}
+
+.projection-card__period {
+  margin: 0.375rem 0 0;
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+}
+
+.projection-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1.25rem 0 0;
+}
+
+.projection-card__metrics div {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.projection-card__metrics dt {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.projection-card__metrics dd {
+  margin: 0.375rem 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.projection-card__income {
+  color: #0f766e;
+}
+
+.projection-card__expense {
+  color: #b45309;
+}
+
+.projection-card__net--positive {
+  color: #047857;
+}
+
+.projection-card__net--negative {
+  color: #b91c1c;
+}

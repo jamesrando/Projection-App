@@ -1,0 +1,6 @@
+@ProjectionApp.Api_HostAddress = http://localhost:5171
+
+GET {{ProjectionApp.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

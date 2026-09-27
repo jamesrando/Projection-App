@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="ProjectionApp.Api/ProjectionApp.Api.csproj" />
+  <Project Path="ProjectionApp.Application/ProjectionApp.Application.csproj" />
+  <Project Path="ProjectionApp.Domain/ProjectionApp.Domain.csproj" />
+  <Project Path="ProjectionApp.Infrastructure/ProjectionApp.Infrastructure.csproj" />
+  <Project Path="ProjectionApp.Tests/ProjectionApp.Tests.csproj" />
+</Solution>
