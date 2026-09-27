@@ -12,4 +12,5 @@ public sealed record Reach100kGoalResultDto(
     decimal? SavingsInterestRate,
     decimal? MonthlyInvestmentContributions,
     bool IsGoalMet,
+    bool IsReachable,
     GoalBreakdownDto Breakdown);

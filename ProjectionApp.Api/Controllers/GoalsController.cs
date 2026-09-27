@@ -9,11 +9,14 @@ public sealed class GoalsController(IGoalService goalService) : ControllerBase
 {
     [HttpPost("reach-100k")]
     public async Task<ActionResult<Reach100kGoalResultDto>> AnalyzeReach100k(
+        [FromBody] AnalyzeReachGoalRequest? request,
         CancellationToken cancellationToken)
     {
         try
         {
-            var result = await goalService.AnalyzeReach100kAsync(cancellationToken);
+            var result = await goalService.AnalyzeReach100kAsync(
+                request?.TargetAmount,
+                cancellationToken);
             return Ok(result);
         }
         catch (InvalidOperationException ex)

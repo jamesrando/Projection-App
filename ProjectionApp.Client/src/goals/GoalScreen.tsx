@@ -1,9 +1,13 @@
-import { useState, type ReactNode } from 'react'
-import { analyzeReach100kGoal } from '../api/goals'
-import { currencySymbol, formatCurrency, formatGoalTarget } from '../format/currency'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
+import { CurrencyField } from '../components/CurrencyField'
+import { PageHeader } from '../components/PageHeader'
+import { StatCard } from '../components/StatCard'
+import { useGoal } from '../context/GoalContext'
+import { useProfile } from '../context/ProfileContext'
+import { currencySymbol, formatCurrency } from '../format/currency'
+import { formatPercent } from '../format/percent'
 import type { GoalBreakdown, Reach100kGoalResult } from '../types/goal'
-
-const goalTargetLabel = formatGoalTarget()
 
 function formatYears(years: number): string {
   const text = years.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')
@@ -12,15 +16,6 @@ function formatYears(years: number): string {
 
 function formatMonths(months: number): string {
   return `${months} ${months === 1 ? 'month' : 'months'}`
-}
-
-function formatPercent(value: number | null): string {
-  if (value === null) {
-    return 'Not set'
-  }
-
-  const text = value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')
-  return `${text}%`
 }
 
 function formatShare(value: number): string {
@@ -37,25 +32,6 @@ function projectedShare(amount: number, total: number): number {
   }
 
   return Math.round((amount / total) * 1000) / 10
-}
-
-interface GoalScreenProps {
-  onBack: () => void
-}
-
-interface StatCardProps {
-  label: string
-  value: string
-  tone?: 'default' | 'accent' | 'money'
-}
-
-function StatCard({ label, value, tone = 'default' }: StatCardProps) {
-  return (
-    <div className={`goal-stat goal-stat--${tone}`}>
-      <span className="goal-stat__label">{label}</span>
-      <span className="goal-stat__value">{value}</span>
-    </div>
-  )
 }
 
 interface PositionSplitProps {
@@ -210,6 +186,7 @@ function GoalPanel({
 function GoalResults({ result }: { result: Reach100kGoalResult }) {
   const { breakdown } = result
   const projectionAvailable = hasProjection(breakdown)
+  const targetLabel = formatCurrency(result.targetAmount)
   const projectedTotal =
     projectionAvailable &&
     breakdown.projectedInvestments !== null &&
@@ -219,25 +196,33 @@ function GoalResults({ result }: { result: Reach100kGoalResult }) {
 
   const timelineLabel = result.isGoalMet
     ? 'Goal reached'
-    : result.estimatedMonthsToGoal === null
-      ? 'Timeline unavailable'
-      : formatYears(result.estimatedYearsToGoal!)
+    : !result.isReachable
+      ? 'Goal unreachable'
+      : result.estimatedMonthsToGoal === null
+        ? 'Timeline unavailable'
+        : formatYears(result.estimatedYearsToGoal!)
 
   const timelineDetail = result.isGoalMet
-    ? `You are already at or above ${goalTargetLabel}.`
-    : result.estimatedMonthsToGoal === null
-      ? 'Add an annual interest rate or monthly investment contribution.'
-      : formatMonths(result.estimatedMonthsToGoal)
+    ? `You are already at or above ${targetLabel}.`
+    : !result.isReachable
+      ? 'Goal may not be reachable with current assumptions within 100 years.'
+      : result.estimatedMonthsToGoal === null
+        ? 'Add an annual interest rate or monthly investment contribution.'
+        : formatMonths(result.estimatedMonthsToGoal)
 
   return (
     <div className="goal-results-stack">
       <section className="goal-hero" aria-label="Goal summary">
         <div className="goal-hero__top">
           <div>
-            <p className="goal-hero__eyebrow">Progress toward {goalTargetLabel}</p>
+            <p className="goal-hero__eyebrow">Progress toward {targetLabel}</p>
             <p className="goal-hero__percent">{result.progressPercent.toFixed(1)}%</p>
           </div>
-          <div className={`goal-hero__badge${result.isGoalMet ? ' goal-hero__badge--met' : ''}`}>
+          <div
+            className={`goal-hero__badge${
+              result.isGoalMet ? ' goal-hero__badge--met' : !result.isReachable ? ' goal-hero__badge--warning' : ''
+            }`}
+          >
             <span className="goal-hero__badge-label">
               {result.isGoalMet ? 'Status' : 'Estimated timeline'}
             </span>
@@ -252,7 +237,8 @@ function GoalResults({ result }: { result: Reach100kGoalResult }) {
           aria-valuenow={result.progressPercent}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-label={`Progress toward ${goalTargetLabel} goal`}
+          aria-valuetext={`${result.progressPercent.toFixed(1)}% toward ${targetLabel}`}
+          aria-label={`Progress toward ${targetLabel} goal`}
         >
           <div className="goal-hero__progress-bar" style={{ width: `${result.progressPercent}%` }} />
         </div>
@@ -375,84 +361,163 @@ function GoalResults({ result }: { result: Reach100kGoalResult }) {
   )
 }
 
-export function GoalScreen({ onBack }: GoalScreenProps) {
-  const [result, setResult] = useState<Reach100kGoalResult | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+export function GoalScreen() {
+  const { profileVersion, hasBalance, savedToServer, loading: profileLoading } = useProfile()
+  const {
+    targetAmount,
+    setTargetAmount,
+    result,
+    loading,
+    error,
+    lastAnalyzedVersion,
+    analyze,
+  } = useGoal()
+  const [targetError, setTargetError] = useState<string | null>(null)
+  const [draftTarget, setDraftTarget] = useState<number | null>(targetAmount)
+  const initialAnalyzeDone = useRef(false)
 
-  async function handleAnalyze() {
-    setLoading(true)
-    setError(null)
+  useEffect(() => {
+    setDraftTarget(targetAmount)
+  }, [targetAmount])
 
-    try {
-      const analysis = await analyzeReach100kGoal()
-      setResult(analysis)
-    } catch (err) {
-      setResult(null)
-      setError(err instanceof Error ? err.message : 'Failed to analyze goal')
-    } finally {
-      setLoading(false)
+  useEffect(() => {
+    if (profileLoading || !savedToServer || !hasBalance) {
+      return
+    }
+
+    const profileChanged = lastAnalyzedVersion !== null && lastAnalyzedVersion !== profileVersion
+    const shouldAnalyze = !initialAnalyzeDone.current || profileChanged
+
+    if (shouldAnalyze) {
+      initialAnalyzeDone.current = true
+      void analyze(profileVersion)
+    }
+  }, [profileVersion, profileLoading, savedToServer, hasBalance, lastAnalyzedVersion, analyze])
+
+  const profileChanged =
+    loading && lastAnalyzedVersion !== null && lastAnalyzedVersion !== profileVersion
+  const targetLabel = formatCurrency(targetAmount)
+
+  function handleTargetChange(value: number | null) {
+    if (value !== null && value > 0) {
+      setDraftTarget(value)
+      if (savedToServer && hasBalance) {
+        void analyze(profileVersion, value)
+      } else {
+        setTargetAmount(value)
+      }
     }
   }
 
   return (
     <div className="goal">
-      <header className="goal__header">
-        <p className="profile__phase">Phase 2 — Set goal</p>
-        <div className="goal__header-row">
-          <div>
-            <h1>Reach {goalTargetLabel}</h1>
-            <p className="profile__subtitle">
-              See how your investments and savings grow toward a {goalTargetLabel} total position.
-            </p>
-          </div>
+      <PageHeader
+        phase="Step 2"
+        title="Projection calculator"
+        subtitle={`Estimate how long it takes to reach ${targetLabel} based on your current finances, interest rates, and monthly contributions.`}
+        actions={
           <button
             type="button"
-            className="goal-card__action goal__analyze"
-            disabled={loading}
-            onClick={() => void handleAnalyze()}
+            className={`goal-card__action goal__analyze${loading ? ' goal-card__action--loading' : ''}`}
+            disabled={loading || !hasBalance || profileLoading}
+            onClick={() => void analyze(profileVersion)}
           >
-            {loading ? 'Analyzing…' : result ? 'Re-run analysis' : 'Analyze goal'}
+            {loading ? (
+              <>
+                <span className="spinner" aria-hidden="true" />
+                Calculating…
+              </>
+            ) : result ? (
+              'Recalculate'
+            ) : (
+              'Calculate'
+            )}
           </button>
+        }
+      />
+
+      <section className="goal-target-form" aria-label="Goal target">
+        <CurrencyField
+          id="targetAmount"
+          label="Goal target"
+          hint="The total position you want to reach."
+          value={draftTarget}
+          disabled={loading}
+          error={targetError}
+          onChange={handleTargetChange}
+          onError={setTargetError}
+        />
+      </section>
+
+      {profileChanged && (
+        <div className="app__banner" role="status" aria-live="polite">
+          Profile updated — re-analyzing…
         </div>
-      </header>
+      )}
 
       {error && (
         <div className="app__error goal__error" role="alert">
           <strong>Unable to analyze goal</strong>
           <p>{error}</p>
+          <button type="button" className="app__retry" onClick={() => void analyze(profileVersion)}>
+            Try again
+          </button>
         </div>
       )}
 
-      {!error && !result && !loading && (
-        <section className="goal-empty" aria-label="Goal analysis prompt">
+      {!hasBalance && !profileLoading && (
+        <section className="goal-empty" aria-label="Finances required">
           <div className="goal-empty__icon" aria-hidden="true">
             {currencySymbol}
           </div>
-          <h2 className="goal-empty__title">Ready to analyze your goal</h2>
+          <h2 className="goal-empty__title">Enter your finances first</h2>
           <p className="goal-empty__text">
-            Run the analysis to see your progress, projected timeline, and a breakdown of how
-            contributions and interest get you to {goalTargetLabel}.
+            Add at least one balance on the finances page before running a projection.
           </p>
-          <ul className="goal-empty__list">
-            <li>Current position split</li>
-            <li>Monthly growth assumptions</li>
-            <li>Projected outcome at goal</li>
-          </ul>
+          <Link to="/finances" className="hero__cta hero__cta--primary goal-empty__cta">
+            Go to your finances
+          </Link>
         </section>
       )}
 
-      {loading && !result && (
-        <p className="app__status goal__loading">Analyzing your profile…</p>
+      {hasBalance && !error && !result && loading && (
+        <p className="app__status goal__loading" aria-live="polite">
+          Calculating your projection…
+        </p>
       )}
 
-      {result && <GoalResults result={result} />}
+      {hasBalance && !error && !result && !loading && (
+        <section className="goal-empty" aria-label="Calculator prompt">
+          <div className="goal-empty__icon" aria-hidden="true">
+            {currencySymbol}
+          </div>
+          <h2 className="goal-empty__title">Ready to calculate</h2>
+          <p className="goal-empty__text">
+            Hit calculate to see your progress, projected timeline, and a breakdown of how
+            contributions and interest get you to {targetLabel}.
+          </p>
+        </section>
+      )}
 
-      <footer className="goal__footer">
-        <button type="button" className="goal__back" onClick={onBack}>
-          ← Back to profile
-        </button>
-      </footer>
+      {result && !loading && (
+        <div className="app__banner app__banner--success" role="status">
+          Projection saved for this session.{' '}
+          <Link to="/projections" className="app__banner-link">
+            View all saved projections
+          </Link>
+        </div>
+      )}
+
+      {result && (
+        <div className={loading ? 'goal-results-stack goal-results-stack--loading' : 'goal-results-stack'}>
+          {loading && (
+            <p className="app__status goal__loading" aria-live="polite">
+              Recalculating…
+            </p>
+          )}
+          <GoalResults result={result} />
+        </div>
+      )}
     </div>
   )
 }

@@ -1,10 +1,11 @@
 import type { ProjectionSummary } from '../types/projection'
+import { apiFetch, parseApiError } from './client'
 
 export async function getProjections(): Promise<ProjectionSummary[]> {
-  const response = await fetch('/api/projections')
+  const response = await apiFetch('/api/projections')
 
   if (!response.ok) {
-    throw new Error(`Failed to load projections (${response.status})`)
+    throw new Error(await parseApiError(response, 'Failed to load projections'))
   }
 
   return response.json() as Promise<ProjectionSummary[]>

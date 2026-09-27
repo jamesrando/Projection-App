@@ -30,6 +30,7 @@ public class GoalServiceTests
         Assert.Null(result.InvestmentInterestRate);
         Assert.Null(result.SavingsInterestRate);
         Assert.False(result.IsGoalMet);
+        Assert.False(result.IsReachable);
     }
 
     [Fact]
@@ -51,6 +52,7 @@ public class GoalServiceTests
         Assert.Equal(0m, result.EstimatedYearsToGoal);
         Assert.Equal(0m, result.RemainingAmount);
         Assert.Equal(100m, result.ProgressPercent);
+        Assert.True(result.IsReachable);
     }
 
     [Fact]
@@ -99,6 +101,27 @@ public class GoalServiceTests
         Assert.NotNull(result.Breakdown.TotalContributionsAdded);
         Assert.Equal(0m, result.Breakdown.TotalContributionsAdded);
         Assert.True(result.Breakdown.TotalInterestEarned > 0m);
+        Assert.True(result.IsReachable);
+    }
+
+    [Fact]
+    public async Task AnalyzeReach100kAsync_AcceptsCustomTargetAmount()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            CurrentInvestments = 50_000m,
+            MonthlyInvestmentContributions = 1_000m,
+        });
+
+        var service = new GoalService(repository);
+
+        var result = await service.AnalyzeReach100kAsync(200_000m);
+
+        Assert.Equal(200_000m, result.TargetAmount);
+        Assert.Equal(50_000m, result.CurrentPosition);
+        Assert.Equal(25m, result.ProgressPercent);
+        Assert.Equal(150, result.EstimatedMonthsToGoal);
+        Assert.True(result.IsReachable);
     }
 
     [Fact]
@@ -119,6 +142,7 @@ public class GoalServiceTests
         Assert.Equal(4.17m, result.EstimatedYearsToGoal);
         Assert.Equal(50_000m, result.Breakdown.TotalContributionsAdded);
         Assert.Equal(0m, result.Breakdown.TotalInterestEarned);
+        Assert.True(result.IsReachable);
     }
 
     [Fact]
@@ -137,6 +161,21 @@ public class GoalServiceTests
         Assert.Null(result.MonthlyCashFlow);
         Assert.Equal(167, result.EstimatedMonthsToGoal);
         Assert.Equal(13.92m, result.EstimatedYearsToGoal);
+        Assert.True(result.IsReachable);
+    }
+
+    [Fact]
+    public async Task AnalyzeReach100kAsync_ThrowsWhenTargetAmountInvalid()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            CurrentInvestments = 50_000m,
+        });
+
+        var service = new GoalService(repository);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.AnalyzeReach100kAsync(0m));
     }
 
     private sealed class FakeUserProfileRepository(UserProfile? profile) : IUserProfileRepository

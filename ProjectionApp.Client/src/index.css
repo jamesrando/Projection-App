@@ -47,6 +47,14 @@
   .app__hint {
     color: #fca5a5;
   }
+
+  .profile-field__error {
+    color: #fca5a5;
+  }
+
+  .projection-card__value--negative {
+    color: #fca5a5;
+  }
 }
 
 * {

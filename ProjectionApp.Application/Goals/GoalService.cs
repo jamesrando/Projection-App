@@ -5,9 +5,10 @@ namespace ProjectionApp.Application.Goals;
 
 public sealed class GoalService(IUserProfileRepository repository) : IGoalService
 {
-    public const decimal TargetAmount = 100_000m;
+    public const decimal DefaultTargetAmount = 100_000m;
 
     public async Task<Reach100kGoalResultDto> AnalyzeReach100kAsync(
+        decimal? targetAmount = null,
         CancellationToken cancellationToken = default)
     {
         var profile = await repository.GetAsync(cancellationToken)
@@ -19,20 +20,26 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
                 "Profile is incomplete. Provide at least a balance.");
         }
 
-        return Analyze(profile);
+        var resolvedTarget = targetAmount ?? DefaultTargetAmount;
+        if (resolvedTarget <= 0m)
+        {
+            throw new InvalidOperationException("Target amount must be greater than zero.");
+        }
+
+        return Analyze(profile, resolvedTarget);
     }
 
-    internal static Reach100kGoalResultDto Analyze(UserProfile profile)
+    internal static Reach100kGoalResultDto Analyze(UserProfile profile, decimal targetAmount)
     {
         var currentInvestments = profile.CurrentInvestments ?? 0m;
         var currentCashSavings = profile.CurrentCashSavings ?? 0m;
         var currentPosition = currentInvestments + currentCashSavings;
-        var remainingAmount = Math.Max(0m, TargetAmount - currentPosition);
+        var remainingAmount = Math.Max(0m, targetAmount - currentPosition);
         var progressPercent = currentPosition <= 0m
             ? 0m
-            : Math.Min(100m, currentPosition / TargetAmount * 100m);
+            : Math.Min(100m, currentPosition / targetAmount * 100m);
         var monthlyCashFlow = profile.MonthlyCashFlow;
-        var isGoalMet = currentPosition >= TargetAmount;
+        var isGoalMet = currentPosition >= targetAmount;
         var monthlyContribution = profile.MonthlyInvestmentContributions ?? 0m;
         var investmentMonthlyRate = (profile.InvestmentInterestRate ?? 0m) / 100m / 12m;
         var savingsMonthlyRate = (profile.SavingsInterestRate ?? 0m) / 100m / 12m;
@@ -44,12 +51,15 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
                 currentCashSavings,
                 monthlyContribution,
                 investmentMonthlyRate,
-                savingsMonthlyRate);
+                savingsMonthlyRate,
+                targetAmount);
 
         var estimatedMonths = isGoalMet ? 0 : projection?.MonthsToGoal;
         decimal? estimatedYears = estimatedMonths is null
             ? null
             : Math.Round(estimatedMonths.Value / 12m, 2, MidpointRounding.AwayFromZero);
+
+        var isReachable = isGoalMet || estimatedMonths is not null;
 
         var investmentsSharePercent = currentPosition <= 0m
             ? 0m
@@ -73,7 +83,7 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             projection?.TotalInterestEarned);
 
         return new Reach100kGoalResultDto(
-            TargetAmount,
+            targetAmount,
             currentPosition,
             remainingAmount,
             progressPercent,
@@ -84,6 +94,7 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             profile.SavingsInterestRate,
             profile.MonthlyInvestmentContributions,
             isGoalMet,
+            isReachable,
             breakdown);
     }
 
@@ -103,7 +114,8 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
         decimal savings,
         decimal monthlyContribution,
         decimal investmentMonthlyRate,
-        decimal savingsMonthlyRate)
+        decimal savingsMonthlyRate,
+        decimal targetAmount)
     {
         if (investmentMonthlyRate == 0m && savingsMonthlyRate == 0m && monthlyContribution == 0m)
         {
@@ -130,7 +142,7 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             investmentInterestEarned += investmentInterest;
             savingsInterestEarned += savingsInterest;
 
-            if (investments + savings >= TargetAmount)
+            if (investments + savings >= targetAmount)
             {
                 return new ProjectionSnapshot(
                     month,

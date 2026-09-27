@@ -23,8 +23,8 @@ export function formatCurrency(value: number | null, precise = false): string {
   return precise ? currencyPrecise.format(value) : currencyWhole.format(value)
 }
 
-export function formatGoalTarget(): string {
-  return formatCurrency(GOAL_TARGET_AMOUNT)
+export function formatGoalTarget(amount: number = GOAL_TARGET_AMOUNT): string {
+  return formatCurrency(amount)
 }
 
 export function parseCurrencyInput(raw: string): number | null {
