@@ -20,6 +20,7 @@ interface GoalTimelineChartProps {
   currentPosition: number
   estimatedMonthsToGoal: number | null
   isReachable: boolean
+  baselineSeries?: MonthlyProjectionPoint[]
 }
 
 interface ChartPoint {
@@ -27,6 +28,7 @@ interface ChartPoint {
   investments: number
   savings: number
   total: number
+  baselineTotal: number | null
   principal: number
   interest: number
 }
@@ -52,12 +54,18 @@ function formatMonthAxis(month: number, maxMonth: number): string {
 function buildChartData(
   monthlySeries: MonthlyProjectionPoint[],
   currentPosition: number,
+  baselineSeries?: MonthlyProjectionPoint[],
 ): ChartPoint[] {
+  const baselineByMonth = new Map(
+    baselineSeries?.map((point) => [point.month, point.totalPosition]) ?? [],
+  )
+
   return monthlySeries.map((point) => ({
     month: point.month,
     investments: point.investments,
     savings: point.savings,
     total: point.totalPosition,
+    baselineTotal: baselineByMonth.get(point.month) ?? null,
     principal: currentPosition + point.cumulativeContributions,
     interest: point.cumulativeInterest,
   }))
@@ -94,9 +102,10 @@ function formatYAxis(value: number): string {
 interface TimelineTooltipProps {
   active?: boolean
   payload?: Array<{ payload: ChartPoint }>
+  showBaseline?: boolean
 }
 
-function TimelineTooltip({ active, payload }: TimelineTooltipProps) {
+function TimelineTooltip({ active, payload, showBaseline }: TimelineTooltipProps) {
   if (!active || !payload?.length) {
     return null
   }
@@ -113,9 +122,15 @@ function TimelineTooltip({ active, payload }: TimelineTooltipProps) {
       </p>
       <dl className="goal-chart__tooltip-list">
         <div>
-          <dt>Total</dt>
+          <dt>{showBaseline ? 'What-if total' : 'Total'}</dt>
           <dd>{formatCurrency(point.total)}</dd>
         </div>
+        {showBaseline && point.baselineTotal !== null && (
+          <div>
+            <dt>Current plan</dt>
+            <dd>{formatCurrency(point.baselineTotal)}</dd>
+          </div>
+        )}
         <div>
           <dt>Investments</dt>
           <dd>{formatCurrency(point.investments)}</dd>
@@ -143,8 +158,10 @@ export function GoalTimelineChart({
   currentPosition,
   estimatedMonthsToGoal,
   isReachable,
+  baselineSeries,
 }: GoalTimelineChartProps) {
-  const chartData = buildChartData(monthlySeries, currentPosition)
+  const showBaseline = Boolean(baselineSeries?.length)
+  const chartData = buildChartData(monthlySeries, currentPosition, baselineSeries)
   const milestones = buildMilestones(targetAmount)
   const maxMonth = chartData[chartData.length - 1]?.month ?? 0
   const showGoalMonthMarker =
@@ -178,7 +195,7 @@ export function GoalTimelineChart({
               tickLine={false}
               width={56}
             />
-            <Tooltip content={<TimelineTooltip />} />
+            <Tooltip content={<TimelineTooltip showBaseline={showBaseline} />} />
             <Legend
               wrapperStyle={{ fontSize: '0.8125rem', color: CHART_COLORS.muted }}
               iconType="circle"
@@ -226,10 +243,23 @@ export function GoalTimelineChart({
               dot={false}
               activeDot={{ r: 4 }}
             />
+            {showBaseline && (
+              <Line
+                type="monotone"
+                dataKey="baselineTotal"
+                name="Current plan"
+                stroke={CHART_COLORS.baseline}
+                strokeWidth={2}
+                strokeDasharray="6 4"
+                dot={false}
+                activeDot={{ r: 4 }}
+                connectNulls
+              />
+            )}
             <Line
               type="monotone"
               dataKey="total"
-              name="Total"
+              name={showBaseline ? 'What-if' : 'Total'}
               stroke={CHART_COLORS.total}
               strokeWidth={2.5}
               dot={false}

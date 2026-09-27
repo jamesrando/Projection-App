@@ -4,6 +4,7 @@ import { formatCurrency } from '../format/currency'
 import { formatPercent } from '../format/percent'
 import type { GoalBreakdown, Reach100kGoalResult } from '../types/goal'
 import { GoalTimelineChart } from './GoalTimelineChart'
+import { formatMonthsDelta } from './useWhatIfAnalysis'
 
 function formatYears(years: number): string {
   const text = years.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')
@@ -179,10 +180,24 @@ function GoalPanel({
   )
 }
 
-export function GoalResults({ result }: { result: Reach100kGoalResult }) {
+interface GoalResultsProps {
+  result: Reach100kGoalResult
+  compareBaseline?: Reach100kGoalResult | null
+  afterHero?: ReactNode
+}
+
+export function GoalResults({ result, compareBaseline, afterHero }: GoalResultsProps) {
   const { breakdown } = result
   const projectionAvailable = hasProjection(breakdown)
   const targetLabel = formatCurrency(result.targetAmount)
+  const monthsDelta =
+    compareBaseline && !compareBaseline.isGoalMet
+      ? formatMonthsDelta(compareBaseline.estimatedMonthsToGoal, result.estimatedMonthsToGoal)
+      : null
+  const baselineSeries =
+    compareBaseline?.monthlySeries && compareBaseline.monthlySeries.length > 1
+      ? compareBaseline.monthlySeries
+      : undefined
   const projectedTotal =
     projectionAvailable &&
     breakdown.projectedInvestments !== null &&
@@ -224,8 +239,21 @@ export function GoalResults({ result }: { result: Reach100kGoalResult }) {
             </span>
             <span className="goal-hero__badge-value">{timelineLabel}</span>
             <span className="goal-hero__badge-detail">{timelineDetail}</span>
+            {monthsDelta && (
+              <span
+                className={`goal-hero__delta${
+                  monthsDelta.includes('sooner')
+                    ? ' goal-hero__delta--positive'
+                    : ' goal-hero__delta--negative'
+                }`}
+              >
+                {monthsDelta}
+              </span>
+            )}
           </div>
         </div>
+
+        {afterHero}
 
         <div
           className="goal-hero__progress"
@@ -271,6 +299,7 @@ export function GoalResults({ result }: { result: Reach100kGoalResult }) {
             currentPosition={result.currentPosition}
             estimatedMonthsToGoal={result.estimatedMonthsToGoal}
             isReachable={result.isReachable}
+            baselineSeries={baselineSeries}
           />
         </GoalPanel>
       )}

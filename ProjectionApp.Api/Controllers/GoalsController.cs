@@ -16,6 +16,7 @@ public sealed class GoalsController(IGoalService goalService) : ControllerBase
         {
             var result = await goalService.AnalyzeReach100kAsync(
                 request?.TargetAmount,
+                request?.Overrides,
                 cancellationToken);
             return Ok(result);
         }

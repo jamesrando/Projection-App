@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader'
 import { useGoal } from '../context/GoalContext'
 import { GoalResults } from '../goals/GoalResults'
+import { WhatIfPanel } from '../goals/WhatIfPanel'
+import { useWhatIfAnalysis } from '../goals/useWhatIfAnalysis'
 import { formatCurrency } from '../format/currency'
 import { useSavedProjections } from '../hooks/useSavedProjections'
 import type { SavedProjection } from '../types/savedProjection'
@@ -132,7 +134,8 @@ function SavedProjectionCard({
 export function ProjectionsScreen() {
   const { result } = useGoal()
   const { projections, remove, clear } = useSavedProjections()
-  const latestResult = result ?? projections[0]?.result ?? null
+  const baselineResult = result ?? projections[0]?.result ?? null
+  const whatIf = useWhatIfAnalysis(baselineResult)
   const previousProjections = projections.slice(1)
 
   return (
@@ -150,7 +153,28 @@ export function ProjectionsScreen() {
         }
       />
 
-      {latestResult && <GoalResults result={latestResult} />}
+      {baselineResult && whatIf.displayResult && (
+        <GoalResults
+          result={whatIf.displayResult}
+          compareBaseline={whatIf.hasChanges ? baselineResult : undefined}
+          afterHero={
+            <WhatIfPanel
+              baseline={baselineResult}
+              contributionDelta={whatIf.contributionDelta}
+              setContributionDelta={whatIf.setContributionDelta}
+              investmentRate={whatIf.investmentRate}
+              setInvestmentRate={whatIf.setInvestmentRate}
+              baseContribution={whatIf.baseContribution}
+              baseInvestmentRate={whatIf.baseInvestmentRate}
+              scenarioResult={whatIf.scenarioResult}
+              loading={whatIf.loading}
+              error={whatIf.error}
+              hasChanges={whatIf.hasChanges}
+              reset={whatIf.reset}
+            />
+          }
+        />
+      )}
 
       {previousProjections.length > 0 && (
         <section className="projections-history" aria-labelledby="history-title">

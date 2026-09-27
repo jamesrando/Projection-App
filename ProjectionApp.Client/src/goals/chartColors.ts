@@ -5,6 +5,7 @@ export const CHART_COLORS = {
   investments: '#2563eb',
   savings: '#047857',
   total: '#0f172a',
+  baseline: '#94a3b8',
   grid: '#e2e8f0',
   muted: '#64748b',
 } as const

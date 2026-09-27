@@ -240,6 +240,73 @@ public class GoalServiceTests
             service.AnalyzeReach100kAsync(0m));
     }
 
+    [Fact]
+    public async Task AnalyzeReach100kAsync_HigherContributionOverride_ReachesGoalSooner()
+    {
+        var profile = new UserProfile
+        {
+            CurrentInvestments = 50_000m,
+            MonthlyInvestmentContributions = 500m,
+        };
+        var repository = new FakeUserProfileRepository(profile);
+        var service = new GoalService(repository);
+
+        var baseline = await service.AnalyzeReach100kAsync();
+        var scenario = await service.AnalyzeReach100kAsync(
+            overrides: new GoalScenarioOverrides(MonthlyContribution: 700m));
+
+        Assert.Equal(100, baseline.EstimatedMonthsToGoal);
+        Assert.True(scenario.EstimatedMonthsToGoal < baseline.EstimatedMonthsToGoal);
+        Assert.Equal(700m, scenario.EffectiveMonthlyContributions);
+        Assert.False(scenario.ContributionsInferredFromSalary);
+        Assert.Equal(500m, profile.MonthlyInvestmentContributions);
+    }
+
+    [Fact]
+    public async Task AnalyzeReach100kAsync_LowerInvestmentRateOverride_ExtendsTimeline()
+    {
+        var profile = new UserProfile
+        {
+            CurrentInvestments = 50_000m,
+            InvestmentInterestRate = 7m,
+            MonthlyInvestmentContributions = 500m,
+        };
+        var repository = new FakeUserProfileRepository(profile);
+        var service = new GoalService(repository);
+
+        var baseline = await service.AnalyzeReach100kAsync();
+        var scenario = await service.AnalyzeReach100kAsync(
+            overrides: new GoalScenarioOverrides(InvestmentInterestRate: 5m));
+
+        Assert.True(scenario.EstimatedMonthsToGoal > baseline.EstimatedMonthsToGoal);
+        Assert.Equal(5m, scenario.InvestmentInterestRate);
+        Assert.Equal(7m, profile.InvestmentInterestRate);
+    }
+
+    [Fact]
+    public async Task AnalyzeReach100kAsync_OverrideDoesNotPersistProfile()
+    {
+        var profile = new UserProfile
+        {
+            CurrentInvestments = 50_000m,
+            InvestmentInterestRate = 7m,
+            SavingsInterestRate = 2m,
+            MonthlyInvestmentContributions = 500m,
+        };
+        var repository = new FakeUserProfileRepository(profile);
+        var service = new GoalService(repository);
+
+        await service.AnalyzeReach100kAsync(
+            overrides: new GoalScenarioOverrides(
+                MonthlyContribution: 900m,
+                InvestmentInterestRate: 4m,
+                SavingsInterestRate: 1m));
+
+        Assert.Equal(500m, profile.MonthlyInvestmentContributions);
+        Assert.Equal(7m, profile.InvestmentInterestRate);
+        Assert.Equal(2m, profile.SavingsInterestRate);
+    }
+
     private sealed class FakeUserProfileRepository(UserProfile? profile) : IUserProfileRepository
     {
         public Task<UserProfile?> GetAsync(CancellationToken cancellationToken = default) =>

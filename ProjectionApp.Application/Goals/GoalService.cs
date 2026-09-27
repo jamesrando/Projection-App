@@ -9,6 +9,7 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
 
     public async Task<Reach100kGoalResultDto> AnalyzeReach100kAsync(
         decimal? targetAmount = null,
+        GoalScenarioOverrides? overrides = null,
         CancellationToken cancellationToken = default)
     {
         var profile = await repository.GetAsync(cancellationToken)
@@ -26,10 +27,13 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             throw new InvalidOperationException("Target amount must be greater than zero.");
         }
 
-        return Analyze(profile, resolvedTarget);
+        return Analyze(profile, resolvedTarget, overrides);
     }
 
-    internal static Reach100kGoalResultDto Analyze(UserProfile profile, decimal targetAmount)
+    internal static Reach100kGoalResultDto Analyze(
+        UserProfile profile,
+        decimal targetAmount,
+        GoalScenarioOverrides? overrides = null)
     {
         var currentInvestments = profile.CurrentInvestments ?? 0m;
         var currentCashSavings = profile.CurrentCashSavings ?? 0m;
@@ -40,9 +44,11 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             : Math.Min(100m, currentPosition / targetAmount * 100m);
         var monthlyCashFlow = profile.MonthlyCashFlow;
         var isGoalMet = currentPosition >= targetAmount;
-        var (monthlyContribution, contributionsInferredFromSalary) = GoalContributionCalculator.Resolve(profile);
-        var investmentMonthlyRate = (profile.InvestmentInterestRate ?? 0m) / 100m / 12m;
-        var savingsMonthlyRate = (profile.SavingsInterestRate ?? 0m) / 100m / 12m;
+        var (monthlyContribution, contributionsInferredFromSalary) = ResolveContribution(profile, overrides);
+        var investmentInterestRate = overrides?.InvestmentInterestRate ?? profile.InvestmentInterestRate;
+        var savingsInterestRate = overrides?.SavingsInterestRate ?? profile.SavingsInterestRate;
+        var investmentMonthlyRate = (investmentInterestRate ?? 0m) / 100m / 12m;
+        var savingsMonthlyRate = (savingsInterestRate ?? 0m) / 100m / 12m;
 
         var projection = isGoalMet
             ? null
@@ -96,8 +102,8 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             monthlyCashFlow,
             estimatedMonths,
             estimatedYears,
-            profile.InvestmentInterestRate,
-            profile.SavingsInterestRate,
+            investmentInterestRate,
+            savingsInterestRate,
             profile.MonthlyInvestmentContributions,
             monthlyContribution,
             contributionsInferredFromSalary,
@@ -105,6 +111,18 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             isReachable,
             breakdown,
             monthlySeries);
+    }
+
+    private static (decimal EffectiveMonthlyContribution, bool InferredFromSalary) ResolveContribution(
+        UserProfile profile,
+        GoalScenarioOverrides? overrides)
+    {
+        if (overrides?.MonthlyContribution is decimal overrideContribution)
+        {
+            return (overrideContribution, false);
+        }
+
+        return GoalContributionCalculator.Resolve(profile);
     }
 
     private sealed record ProjectionSnapshot(

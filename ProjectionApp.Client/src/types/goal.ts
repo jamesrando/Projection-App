@@ -1,3 +1,9 @@
+export interface GoalScenarioOverrides {
+  monthlyContribution?: number
+  investmentInterestRate?: number
+  savingsInterestRate?: number
+}
+
 export interface MonthlyProjectionPoint {
   month: number
   investments: number
