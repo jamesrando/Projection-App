@@ -42,10 +42,10 @@ public class UkTaxCalculatorTests
     {
         var result = UkTaxCalculator.Calculate(150_000m);
 
-        Assert.Equal(54_331.50m, result.IncomeTaxAnnual);
+        Assert.Equal(53_703.00m, result.IncomeTaxAnnual);
         Assert.Equal(5_010.60m, result.NationalInsuranceAnnual);
-        Assert.Equal(59_342.10m, result.TotalDeductionsAnnual);
-        Assert.Equal(90_657.90m, UkTaxCalculator.CalculateNetAnnual(150_000m));
+        Assert.Equal(58_713.60m, result.TotalDeductionsAnnual);
+        Assert.Equal(91_286.40m, UkTaxCalculator.CalculateNetAnnual(150_000m));
     }
 
     [Fact]

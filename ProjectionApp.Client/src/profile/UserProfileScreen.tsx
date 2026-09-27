@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { CurrencyField } from '../components/CurrencyField'
 import { PageHeader } from '../components/PageHeader'
 import { PercentField } from '../components/PercentField'
@@ -17,6 +17,7 @@ import {
 type ProfileField = keyof ProfileFormState
 
 export function UserProfileScreen() {
+  const navigate = useNavigate()
   const {
     profile,
     loading,
@@ -49,7 +50,7 @@ export function UserProfileScreen() {
   return (
     <div className="profile">
       <PageHeader
-        phase="Step 1"
+        phase="Step 1 of 3"
         title="Your finances"
         subtitle="Enter your current balances, interest rates, and contributions. These inputs drive every projection you run."
       />
@@ -171,7 +172,7 @@ export function UserProfileScreen() {
               <CurrencyField
                 id="monthlyInvestmentContributions"
                 label="Monthly investment contributions"
-                hint="Optional amount added to investments each month."
+                hint="Optional. Leave blank to estimate 20% of net monthly income from your salary."
                 value={profile.monthlyInvestmentContributions}
                 disabled={saving}
                 error={fieldErrors.monthlyInvestmentContributions}
@@ -214,18 +215,25 @@ export function UserProfileScreen() {
                 <p className="profile__save-status profile__save-status--saved">Profile saved</p>
               )}
             </div>
-            <Link
-              to="/calculator"
-              className={`profile__continue${canContinue && !hasFieldErrors ? '' : ' profile__continue--disabled'}`}
-              aria-disabled={!canContinue || hasFieldErrors}
-              onClick={(event) => {
-                if (!canContinue || hasFieldErrors) {
-                  event.preventDefault()
-                }
-              }}
-            >
-              Open calculator
-            </Link>
+            <div className="profile__footer-actions">
+              {profile.annualSalary !== null && profile.annualSalary > 0 && (
+                <Link to="/salary" className="profile__secondary-action">
+                  Preview take-home pay
+                </Link>
+              )}
+              <button
+                type="button"
+                className="profile__continue"
+                disabled={!canContinue || hasFieldErrors}
+                onClick={() => {
+                  if (canContinue && !hasFieldErrors) {
+                    navigate('/calculator')
+                  }
+                }}
+              >
+                Continue to calculator
+              </button>
+            </div>
           </footer>
         </>
       )}

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader'
+import { useGoal } from '../context/GoalContext'
+import { GoalResults } from '../goals/GoalResults'
 import { formatCurrency } from '../format/currency'
 import { useSavedProjections } from '../hooks/useSavedProjections'
 import type { SavedProjection } from '../types/savedProjection'
@@ -100,7 +102,7 @@ function SavedProjectionCard({
           <dl className="saved-projection__detail-grid">
             <div>
               <dt>Monthly contributions</dt>
-              <dd>{formatCurrency(result.monthlyInvestmentContributions, true)}</dd>
+              <dd>{formatCurrency(result.effectiveMonthlyContributions, true)}</dd>
             </div>
             <div>
               <dt>Investment rate</dt>
@@ -128,43 +130,49 @@ function SavedProjectionCard({
 }
 
 export function ProjectionsScreen() {
+  const { result } = useGoal()
   const { projections, remove, clear } = useSavedProjections()
+  const latestResult = result ?? projections[0]?.result ?? null
+  const previousProjections = projections.slice(1)
 
   return (
     <div className="projections">
       <PageHeader
-        phase="Saved this session"
-        title="Your projections"
-        subtitle="Calculations you've run during this browser session. Results are stored locally and cleared when you close the tab."
+        phase="Step 3 of 3"
+        title="Your results"
+        subtitle="Review your projection breakdown and compare scenarios saved during this session."
         actions={
-          projections.length > 0 ? (
+          projections.length > 1 ? (
             <button type="button" className="goal-card__action" onClick={clear}>
-              Clear all
+              Clear history
             </button>
           ) : undefined
         }
       />
 
-      {projections.length === 0 && (
-        <section className="goal-empty" aria-label="No saved projections">
-          <h2 className="goal-empty__title">No projections saved yet</h2>
-          <p className="goal-empty__text">
-            Run a calculation on the calculator page and your results will appear here automatically.
-            Nothing is sent to a server — everything stays in this browser session.
-          </p>
-          <Link to="/calculator" className="hero__cta hero__cta--primary goal-empty__cta">
-            Open calculator
-          </Link>
+      {latestResult && <GoalResults result={latestResult} />}
+
+      {previousProjections.length > 0 && (
+        <section className="projections-history" aria-labelledby="history-title">
+          <h2 id="history-title" className="projections-history__title">
+            Previous scenarios
+          </h2>
+          <div className="saved-projections-list">
+            {previousProjections.map((projection) => (
+              <SavedProjectionCard key={projection.id} projection={projection} onRemove={remove} />
+            ))}
+          </div>
         </section>
       )}
 
-      {projections.length > 0 && (
-        <div className="saved-projections-list">
-          {projections.map((projection) => (
-            <SavedProjectionCard key={projection.id} projection={projection} onRemove={remove} />
-          ))}
-        </div>
-      )}
+      <footer className="flow-footer">
+        <Link to="/finances" className="flow-footer__back">
+          ← Edit finances
+        </Link>
+        <Link to="/calculator" className="profile__continue">
+          Run another projection
+        </Link>
+      </footer>
     </div>
   )
 }

@@ -24,6 +24,8 @@ export interface Reach100kGoalResult {
   investmentInterestRate: number | null
   savingsInterestRate: number | null
   monthlyInvestmentContributions: number | null
+  effectiveMonthlyContributions: number
+  contributionsInferredFromSalary: boolean
   isGoalMet: boolean
   isReachable: boolean
   breakdown: GoalBreakdown

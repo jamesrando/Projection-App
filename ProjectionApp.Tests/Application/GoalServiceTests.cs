@@ -7,7 +7,7 @@ namespace ProjectionApp.Tests.Application;
 public class GoalServiceTests
 {
     [Fact]
-    public async Task AnalyzeReach100kAsync_IgnoresSalaryWhenEstimatingTimeline()
+    public async Task AnalyzeReach100kAsync_InfersMonthlyContributionsFromSalary()
     {
         var repository = new FakeUserProfileRepository(new UserProfile
         {
@@ -25,12 +25,32 @@ public class GoalServiceTests
         Assert.Equal(25_000m, result.RemainingAmount);
         Assert.Equal(75m, result.ProgressPercent);
         Assert.Equal(100_000m / 12m, result.MonthlyCashFlow);
-        Assert.Null(result.EstimatedMonthsToGoal);
-        Assert.Null(result.EstimatedYearsToGoal);
-        Assert.Null(result.InvestmentInterestRate);
-        Assert.Null(result.SavingsInterestRate);
+        Assert.Null(result.MonthlyInvestmentContributions);
+        Assert.True(result.ContributionsInferredFromSalary);
+        Assert.Equal(1_142.62m, result.EffectiveMonthlyContributions);
+        Assert.Equal(22, result.EstimatedMonthsToGoal);
+        Assert.Equal(1.83m, result.EstimatedYearsToGoal);
         Assert.False(result.IsGoalMet);
-        Assert.False(result.IsReachable);
+        Assert.True(result.IsReachable);
+    }
+
+    [Fact]
+    public async Task AnalyzeReach100kAsync_UsesExplicitContributionsOverSalaryInference()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            AnnualSalary = 100_000m,
+            CurrentInvestments = 50_000m,
+            MonthlyInvestmentContributions = 500m,
+        });
+
+        var service = new GoalService(repository);
+
+        var result = await service.AnalyzeReach100kAsync();
+
+        Assert.Equal(500m, result.EffectiveMonthlyContributions);
+        Assert.False(result.ContributionsInferredFromSalary);
+        Assert.Equal(100, result.EstimatedMonthsToGoal);
     }
 
     [Fact]
@@ -82,6 +102,7 @@ public class GoalServiceTests
             CurrentCashSavings = 20_000m,
             InvestmentInterestRate = 7m,
             SavingsInterestRate = 2m,
+            MonthlyInvestmentContributions = 0m,
         });
 
         var service = new GoalService(repository);

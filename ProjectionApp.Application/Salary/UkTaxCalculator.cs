@@ -6,10 +6,8 @@ public static class UkTaxCalculator
 
     private const decimal PersonalAllowance = 12_570m;
     private const decimal PersonalAllowanceTaperStart = 100_000m;
-    private const decimal BasicRateUpperLimit = 50_270m;
-    private const decimal HigherRateUpperLimit = 125_140m;
-    private const decimal BasicRateBandWidth = BasicRateUpperLimit - PersonalAllowance;
-    private const decimal HigherRateBandWidth = HigherRateUpperLimit - BasicRateUpperLimit;
+    private const decimal BasicRateTaxableLimit = 37_700m;
+    private const decimal AdditionalRateTaxableThreshold = 125_140m;
 
     private const decimal NiPrimaryThreshold = 12_570m;
     private const decimal NiUpperEarningsLimit = 50_270m;
@@ -53,9 +51,12 @@ public static class UkTaxCalculator
         var allowance = CalculatePersonalAllowance(annualGrossSalary);
         var taxableIncome = Math.Max(0m, annualGrossSalary - allowance);
 
-        var basicRateTax = Math.Min(taxableIncome, BasicRateBandWidth) * 0.20m;
-        var higherRateTax = Math.Min(Math.Max(0m, taxableIncome - BasicRateBandWidth), HigherRateBandWidth) * 0.40m;
-        var additionalRateTax = Math.Max(0m, taxableIncome - BasicRateBandWidth - HigherRateBandWidth) * 0.45m;
+        var basicRateTax = Math.Min(taxableIncome, BasicRateTaxableLimit) * 0.20m;
+        var higherRateTaxable = Math.Min(
+            Math.Max(0m, taxableIncome - BasicRateTaxableLimit),
+            AdditionalRateTaxableThreshold - BasicRateTaxableLimit);
+        var higherRateTax = higherRateTaxable * 0.40m;
+        var additionalRateTax = Math.Max(0m, taxableIncome - AdditionalRateTaxableThreshold) * 0.45m;
 
         return basicRateTax + higherRateTax + additionalRateTax;
     }

@@ -1,12 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-
-const navItems = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/finances', label: 'Your finances' },
-  { to: '/calculator', label: 'Calculator' },
-  { to: '/salary', label: 'Take-home pay' },
-  { to: '/projections', label: 'Saved' },
-]
+import { FlowStepper } from '../components/FlowStepper'
 
 export function AppShell() {
   return (
@@ -19,23 +12,10 @@ export function AppShell() {
             </span>
             <span className="app-shell__brand-text">
               <span className="app-shell__title">Projection Calculator</span>
-              <span className="app-shell__tagline">Quick financial projections</span>
+              <span className="app-shell__tagline">Guided savings projection</span>
             </span>
           </NavLink>
-          <nav className="app-shell__nav" aria-label="Main navigation">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  `app-shell__link${isActive ? ' app-shell__link--active' : ''}`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
+          <FlowStepper />
         </div>
       </header>
       <main className="app__main">

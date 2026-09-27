@@ -17,7 +17,7 @@ interface GoalContextValue {
   loading: boolean
   error: string | null
   lastAnalyzedVersion: number | null
-  analyze: (profileVersion: number, overrideTarget?: number) => Promise<void>
+  analyze: (profileVersion: number, overrideTarget?: number) => Promise<boolean>
 }
 
 const GoalContext = createContext<GoalContextValue | null>(null)
@@ -30,7 +30,7 @@ export function GoalProvider({ children }: { children: ReactNode }) {
   const [lastAnalyzedVersion, setLastAnalyzedVersion] = useState<number | null>(null)
 
   const analyze = useCallback(
-    async (profileVersion: number, overrideTarget?: number) => {
+    async (profileVersion: number, overrideTarget?: number): Promise<boolean> => {
       const resolvedTarget = overrideTarget ?? targetAmount
       setLoading(true)
       setError(null)
@@ -43,8 +43,10 @@ export function GoalProvider({ children }: { children: ReactNode }) {
         if (overrideTarget !== undefined) {
           setTargetAmount(overrideTarget)
         }
+        return true
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to analyze goal')
+        return false
       } finally {
         setLoading(false)
       }

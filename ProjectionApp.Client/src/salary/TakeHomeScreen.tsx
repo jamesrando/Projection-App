@@ -291,6 +291,12 @@ export function TakeHomeScreen() {
           <TakeHomeResults result={result} />
         </div>
       )}
+
+      <footer className="flow-footer">
+        <Link to="/finances" className="flow-footer__back">
+          ← Back to your finances
+        </Link>
+      </footer>
     </div>
   )
 }

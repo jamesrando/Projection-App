@@ -43,6 +43,7 @@ appsettings.local.json
 
 ## ASP.NET
 **/wwwroot/dist/
+ProjectionApp.Api/data/user-profile.json
 
 ## Node
 node_modules/
