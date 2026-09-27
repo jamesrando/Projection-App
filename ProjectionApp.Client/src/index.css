@@ -6,6 +6,7 @@
   --surface: #ffffff;
   --border: #e2e8f0;
   --accent: #2563eb;
+  --money: #047857;
   --shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 
   font-family: Inter, system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -28,7 +29,13 @@
     --surface: #111827;
     --border: #334155;
     --accent: #60a5fa;
+    --money: #6ee7b7;
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  }
+
+  .profile__phase {
+    color: #86efac;
+    background: #14532d;
   }
 
   .app__error {
@@ -38,22 +45,6 @@
   }
 
   .app__hint {
-    color: #fca5a5;
-  }
-
-  .projection-card__income {
-    color: #5eead4;
-  }
-
-  .projection-card__expense {
-    color: #fdba74;
-  }
-
-  .projection-card__net--positive {
-    color: #6ee7b7;
-  }
-
-  .projection-card__net--negative {
     color: #fca5a5;
   }
 }

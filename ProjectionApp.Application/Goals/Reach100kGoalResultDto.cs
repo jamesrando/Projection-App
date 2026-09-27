@@ -1,0 +1,15 @@
+namespace ProjectionApp.Application.Goals;
+
+public sealed record Reach100kGoalResultDto(
+    decimal TargetAmount,
+    decimal CurrentPosition,
+    decimal RemainingAmount,
+    decimal ProgressPercent,
+    decimal? MonthlyCashFlow,
+    int? EstimatedMonthsToGoal,
+    decimal? EstimatedYearsToGoal,
+    decimal? InvestmentInterestRate,
+    decimal? SavingsInterestRate,
+    decimal? MonthlyInvestmentContributions,
+    bool IsGoalMet,
+    GoalBreakdownDto Breakdown);
