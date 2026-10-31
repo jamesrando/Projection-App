@@ -6,6 +6,7 @@ import { InvestmentsSavingsSplit } from '@/shared/ui/InvestmentsSavingsSplit'
 import { StatCard } from '@/shared/ui/StatCard'
 import type { GoalBreakdown, SavingsGoalResult } from '../types'
 import { formatMonthsDelta } from '../useWhatIfAnalysis'
+import { GoalInvestmentProjectionDisclosure } from './GoalInvestmentProjectionDisclosure'
 import { GoalTimelineChart } from './GoalTimelineChart'
 
 function formatYears(years: number): string {
@@ -305,6 +306,15 @@ export function GoalResults({ result, compareBaseline, afterHero }: GoalResultsP
                 <span>Projected total</span>
                 <strong>{formatCurrency(projectedTotal)}</strong>
               </div>
+              {breakdown.investmentHoldingProjections &&
+                breakdown.investmentHoldingProjections.length > 1 &&
+                breakdown.projectedInvestments !== null && (
+                  <GoalInvestmentProjectionDisclosure
+                    className="goal-panel__holding-breakdown"
+                    projections={breakdown.investmentHoldingProjections}
+                    projectedInvestmentsTotal={breakdown.projectedInvestments}
+                  />
+                )}
             </GoalPanel>
 
             <GoalPanel

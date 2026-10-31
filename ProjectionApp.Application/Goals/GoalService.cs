@@ -90,6 +90,13 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             : Math.Round(currentCashSavings / currentPosition * 100m, 1, MidpointRounding.AwayFromZero);
 
         var goalReached = simulation?.MonthsToGoal is not null;
+        var projectionMonths = isGoalMet ? 0 : simulation?.MonthsToGoal ?? 0;
+        var holdingProjections = BuildHoldingProjections(
+            profile,
+            projectionMonths,
+            investmentInterestRate,
+            monthlyContribution,
+            isGoalMet || goalReached);
 
         var breakdown = new GoalBreakdownDto(
             currentInvestments,
@@ -103,7 +110,8 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             goalReached ? simulation!.TotalContributionsAdded : null,
             goalReached ? simulation!.InvestmentInterestEarned : null,
             goalReached ? simulation!.SavingsInterestEarned : null,
-            goalReached ? simulation!.TotalInterestEarned : null);
+            goalReached ? simulation!.TotalInterestEarned : null,
+            holdingProjections);
 
         return new SavingsGoalResultDto(
             targetAmount,
@@ -133,5 +141,61 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
         }
 
         return GoalContributionResolver.Resolve(profile);
+    }
+
+    private static IReadOnlyList<InvestmentHoldingProjectionDto>? BuildHoldingProjections(
+        UserProfile profile,
+        int months,
+        decimal? investmentInterestRate,
+        decimal effectiveMonthlyContribution,
+        bool includeProjections)
+    {
+        var holdings = profile.InvestmentHoldings;
+        if (!includeProjections || holdings is not { Count: > 1 })
+        {
+            return null;
+        }
+
+        var rollup = InvestmentHoldingsRollup.Rollup(holdings);
+        var rateScale = 1m;
+        if (investmentInterestRate is decimal overrideRate &&
+            rollup.WeightedAnnualReturnRate is decimal weightedRate &&
+            weightedRate > 0m)
+        {
+            rateScale = overrideRate / weightedRate;
+        }
+
+        var projections = InvestmentHoldingsProjector.ProjectToMonth(
+            holdings,
+            months,
+            rateScale,
+            effectiveMonthlyContribution);
+
+        var projectedInvestmentsTotal = projections.Sum(projection => projection.ProjectedBalance);
+        if (projectedInvestmentsTotal <= 0m)
+        {
+            return projections
+                .Select(projection => new InvestmentHoldingProjectionDto(
+                    projection.Id,
+                    projection.Category,
+                    projection.CustomLabel,
+                    projection.CurrentBalance,
+                    projection.ProjectedBalance,
+                    0m))
+                .ToList();
+        }
+
+        return projections
+            .Select(projection => new InvestmentHoldingProjectionDto(
+                projection.Id,
+                projection.Category,
+                projection.CustomLabel,
+                projection.CurrentBalance,
+                projection.ProjectedBalance,
+                Math.Round(
+                    projection.ProjectedBalance / projectedInvestmentsTotal * 100m,
+                    1,
+                    MidpointRounding.AwayFromZero)))
+            .ToList();
     }
 }

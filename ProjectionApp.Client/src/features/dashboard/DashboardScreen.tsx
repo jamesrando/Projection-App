@@ -23,7 +23,7 @@ const steps = [
 ]
 
 export function DashboardScreen() {
-  const { result } = useGoal()
+  const { result, clearCachedResults } = useGoal()
   const { savedRuns } = useSavedGoalRuns()
   const { nextPath, financesComplete, hasResults } = useFlowProgress()
   const canOpenLaterSteps = financesComplete && hasResults
@@ -83,9 +83,18 @@ export function DashboardScreen() {
 
       {canOpenLaterSteps && (
         <section className="dashboard-session" aria-labelledby="session-title">
-          <h2 id="session-title" className="dashboard-session__title">
-            Your latest calculation
-          </h2>
+          <div className="dashboard-session__header">
+            <h2 id="session-title" className="dashboard-session__title">
+              Your latest calculation
+            </h2>
+            <button
+              type="button"
+              className="dashboard-session__clear"
+              onClick={clearCachedResults}
+            >
+              Clear cached results
+            </button>
+          </div>
           <div className="dashboard-session__stats">
             {result && (
               <div className="session-stat">

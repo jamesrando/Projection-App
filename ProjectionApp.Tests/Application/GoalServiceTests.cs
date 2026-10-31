@@ -315,6 +315,48 @@ public class GoalServiceTests
         Assert.Equal(2m, profile.SavingsInterestRate);
     }
 
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_IncludesProjectedInvestmentHoldingsWhenProfileHasBreakdown()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            AnnualSalary = 100_000m,
+            CurrentInvestments = 40_000m,
+            CurrentCashSavings = 25_000m,
+            InvestmentInterestRate = 6.5m,
+            MonthlyInvestmentContributions = 300m,
+            UseInvestmentBreakdown = true,
+            InvestmentHoldings =
+            [
+                new InvestmentHolding
+                {
+                    Category = "stocksIsa",
+                    Balance = 10_000m,
+                    AnnualReturnRate = 5m,
+                    MonthlyContribution = 100m,
+                },
+                new InvestmentHolding
+                {
+                    Category = "pension",
+                    Balance = 30_000m,
+                    AnnualReturnRate = 7m,
+                    MonthlyContribution = 200m,
+                },
+            ],
+        });
+
+        var service = new GoalService(repository);
+
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
+
+        Assert.NotNull(result.Breakdown.InvestmentHoldingProjections);
+        Assert.Equal(2, result.Breakdown.InvestmentHoldingProjections!.Count);
+        Assert.Equal("stocksIsa", result.Breakdown.InvestmentHoldingProjections![0].Category);
+        Assert.Equal("pension", result.Breakdown.InvestmentHoldingProjections![1].Category);
+        Assert.True(result.Breakdown.InvestmentHoldingProjections![0].ProjectedBalance > 10_000m);
+        Assert.True(result.Breakdown.InvestmentHoldingProjections![1].ProjectedBalance > 30_000m);
+    }
+
     private sealed class FakeUserProfileRepository(UserProfile? profile) : IUserProfileRepository
     {
         public Task<UserProfile?> GetAsync(CancellationToken cancellationToken = default) =>

@@ -34,6 +34,7 @@ const sampleResult: SavingsGoalResult = {
     investmentInterestEarned: null,
     savingsInterestEarned: null,
     totalInterestEarned: null,
+    investmentHoldingProjections: null,
   },
   monthlySeries: null,
 }
@@ -84,6 +85,16 @@ describe('savedGoalRuns storage', () => {
     removeSavedGoalRun(saved.id)
 
     expect(loadSavedGoalRuns()).toHaveLength(0)
+  })
+
+  it('clears all saved goal runs', () => {
+    saveGoalRunResult(sampleResult, 1)
+    saveGoalRunResult({ ...sampleResult, targetAmount: 200_000 }, 2)
+
+    clearSavedGoalRuns()
+
+    expect(loadSavedGoalRuns()).toHaveLength(0)
+    expect(sessionStorage.getItem('projection-app:saved-goal-runs')).toBeNull()
   })
 
   it('migrates legacy session storage key', () => {

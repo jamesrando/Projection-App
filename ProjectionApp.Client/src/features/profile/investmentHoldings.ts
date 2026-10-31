@@ -238,3 +238,13 @@ export function holdingRowFromDto(dto: InvestmentHoldingDto): InvestmentHoldingR
 function isInvestmentCategory(value: string): value is InvestmentCategory {
   return INVESTMENT_CATEGORY_OPTIONS.some((option) => option.value === value)
 }
+
+export function investmentCategoryLabelFromApi(
+  category: string,
+  customLabel: string | null,
+): string {
+  return investmentCategoryLabel(
+    isInvestmentCategory(category) ? category : 'other',
+    customLabel,
+  )
+}

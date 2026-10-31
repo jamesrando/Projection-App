@@ -13,6 +13,15 @@ export interface GoalTimelinePoint {
   cumulativeInterest: number
 }
 
+export interface InvestmentHoldingProjection {
+  id: string
+  category: string
+  customLabel: string | null
+  currentBalance: number
+  projectedBalance: number
+  projectedSharePercent: number
+}
+
 export interface GoalBreakdown {
   currentInvestments: number
   currentCashSavings: number
@@ -26,6 +35,7 @@ export interface GoalBreakdown {
   investmentInterestEarned: number | null
   savingsInterestEarned: number | null
   totalInterestEarned: number | null
+  investmentHoldingProjections: InvestmentHoldingProjection[] | null
 }
 
 export interface SavingsGoalResult {

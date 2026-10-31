@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useProfile } from '@/features/profile/useProfile'
 import { GOAL_TARGET_AMOUNT } from '@/shared/lib/format/currency'
 import { analyzeSavingsGoal } from './api'
-import { loadSavedGoalRuns, saveGoalRunResult } from './storage'
+import { clearSavedGoalRuns, loadSavedGoalRuns, saveGoalRunResult } from './storage'
 import type { SavingsGoalResult } from './types'
 
 export const goalQueryKey = ['goal', 'session'] as const
@@ -13,14 +13,18 @@ export interface GoalSession {
   lastAnalyzedVersion: number | null
 }
 
+function emptyGoalSession(targetAmount = GOAL_TARGET_AMOUNT): GoalSession {
+  return {
+    targetAmount,
+    result: null,
+    lastAnalyzedVersion: null,
+  }
+}
+
 function readGoalSession(): GoalSession {
   const latestRun = loadSavedGoalRuns()[0]
   if (!latestRun) {
-    return {
-      targetAmount: GOAL_TARGET_AMOUNT,
-      result: null,
-      lastAnalyzedVersion: null,
-    }
+    return emptyGoalSession()
   }
 
   return {
@@ -64,6 +68,12 @@ export function useGoal() {
     }))
   }
 
+  function clearCachedResults() {
+    const current = queryClient.getQueryData<GoalSession>(goalQueryKey) ?? readGoalSession()
+    clearSavedGoalRuns()
+    queryClient.setQueryData<GoalSession>(goalQueryKey, emptyGoalSession(current.targetAmount))
+  }
+
   async function analyze(overrideTarget?: number): Promise<boolean> {
     const resolvedTarget = overrideTarget ?? query.data.targetAmount
 
@@ -88,5 +98,6 @@ export function useGoal() {
           : null,
     lastAnalyzedVersion: query.data.lastAnalyzedVersion,
     analyze,
+    clearCachedResults,
   }
 }

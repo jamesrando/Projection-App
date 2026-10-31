@@ -534,6 +534,10 @@
   color: var(--text-muted);
 }
 
+.goal-panel__holding-breakdown {
+  margin-top: 1rem;
+}
+
 .goal-panel__footer-stat {
   display: flex;
   align-items: center;
