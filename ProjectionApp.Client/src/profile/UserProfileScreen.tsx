@@ -7,7 +7,7 @@ import { Skeleton } from '../components/Skeleton'
 import { useProfile } from '../context/ProfileContext'
 import { formatCurrency } from '../format/currency'
 import { formatPercent } from '../format/percent'
-import { hasAnyBalance, totalPosition, type ProfileFormState } from './userProfile'
+import { totalPosition, type ProfileFormState } from './userProfile'
 
 type ProfileField = keyof ProfileFormState
 
@@ -105,6 +105,7 @@ export function UserProfileScreen() {
     savePending,
     error,
     savedToServer,
+    isProfileCompleteForGoals,
     updateField,
     retryLoad,
     retrySave,
@@ -128,7 +129,8 @@ export function UserProfileScreen() {
   const savings = profile.currentCashSavings ?? 0
   const investmentsShare = sharePercent(investments, position)
   const savingsShare = sharePercent(savings, position)
-  const canContinue = savedToServer && hasAnyBalance(profile) && !saving && !savePending
+  const profileSynced = savedToServer && !saving && !savePending
+  const canContinue = profileSynced && isProfileCompleteForGoals
   const hasFieldErrors = Object.keys(fieldErrors).length > 0
 
   return (
@@ -282,12 +284,14 @@ export function UserProfileScreen() {
               aria-live="polite"
               aria-atomic="true"
             >
-              {saving && <p className="profile__save-status">Saving…</p>}
-              {!saving && savedToServer && hasAnyBalance(profile) && (
+              {(saving || savePending) && <p className="profile__save-status">Saving…</p>}
+              {!saving && !savePending && savedToServer && isProfileCompleteForGoals && (
                 <p className="profile__save-status profile__save-status--saved">Profile saved</p>
               )}
-              {!saving && !hasAnyBalance(profile) && (
-                <p className="profile__save-status">Enter a balance to continue</p>
+              {!saving && !savePending && savedToServer && !isProfileCompleteForGoals && (
+                <p className="profile__save-status">
+                  Enter salary, investments, or cash savings to continue
+                </p>
               )}
             </div>
             <div className="profile__footer-actions">

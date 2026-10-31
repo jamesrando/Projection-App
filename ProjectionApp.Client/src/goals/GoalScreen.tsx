@@ -10,7 +10,13 @@ import { currencySymbol, formatCurrency } from '../format/currency'
 
 export function GoalScreen() {
   const navigate = useNavigate()
-  const { hasBalance, loading: profileLoading, saving, savePending } = useProfile()
+  const {
+    isProfileCompleteForGoals,
+    loading: profileLoading,
+    saving,
+    savePending,
+    savedToServer,
+  } = useProfile()
   const { targetAmount, setTargetAmount, loading, error, analyze } = useGoal()
   const { isStale, hasBaseline } = useAnalysisFreshness()
   const [targetError, setTargetError] = useState<string | null>(null)
@@ -22,10 +28,12 @@ export function GoalScreen() {
 
   const profileBusy = saving || savePending
 
+  const profileReadyForGoals =
+    savedToServer && isProfileCompleteForGoals && !profileBusy
+
   const canCalculate =
-    hasBalance &&
+    profileReadyForGoals &&
     !profileLoading &&
-    !profileBusy &&
     draftTarget !== null &&
     draftTarget > 0 &&
     !targetError
@@ -79,7 +87,7 @@ export function GoalScreen() {
         </div>
       )}
 
-      {!hasBalance && !profileLoading && (
+      {!profileReadyForGoals && !profileLoading && (
         <section className="goal-empty" aria-label="Finances required">
           <div className="goal-empty__icon" aria-hidden="true">
             {currencySymbol}
@@ -94,7 +102,7 @@ export function GoalScreen() {
         </section>
       )}
 
-      {hasBalance && !error && !loading && (
+      {profileReadyForGoals && !error && !loading && (
         <section className="goal-empty" aria-label="Calculator prompt">
           <div className="goal-empty__icon" aria-hidden="true">
             {currencySymbol}
@@ -107,7 +115,7 @@ export function GoalScreen() {
         </section>
       )}
 
-      {hasBalance && loading && (
+      {profileReadyForGoals && loading && (
         <p className="app__status goal__loading" aria-live="polite">
           Calculating your timeline…
         </p>

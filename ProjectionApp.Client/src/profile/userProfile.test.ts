@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { hasAnyBalance, totalPosition } from './userProfile'
+import { MAX_INTEREST_RATE_PERCENT, MIN_INTEREST_RATE_PERCENT } from './profileRules'
+import { totalPosition } from './userProfile'
 
 describe('userProfile helpers', () => {
   it('sums investments and savings for total position', () => {
@@ -14,17 +15,11 @@ describe('userProfile helpers', () => {
       }),
     ).toBe(50_000)
   })
+})
 
-  it('detects when any balance field is present', () => {
-    expect(
-      hasAnyBalance({
-        annualSalary: 50_000,
-        currentInvestments: null,
-        currentCashSavings: null,
-        investmentInterestRate: null,
-        savingsInterestRate: null,
-        monthlyInvestmentContributions: null,
-      }),
-    ).toBe(true)
+describe('profileRules', () => {
+  it('mirrors domain interest rate bounds', () => {
+    expect(MIN_INTEREST_RATE_PERCENT).toBe(0)
+    expect(MAX_INTEREST_RATE_PERCENT).toBe(100)
   })
 })

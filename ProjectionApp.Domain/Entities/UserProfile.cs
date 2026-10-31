@@ -1,3 +1,5 @@
+using ProjectionApp.Domain.Profiles;
+
 namespace ProjectionApp.Domain.Entities;
 
 public sealed class UserProfile
@@ -18,8 +20,9 @@ public sealed class UserProfile
 
     public decimal TotalPosition => (CurrentInvestments ?? 0m) + (CurrentCashSavings ?? 0m);
 
-    public bool HasAnyBalance =>
-        AnnualSalary is not null ||
-        CurrentInvestments is not null ||
-        CurrentCashSavings is not null;
+    public bool HasMinimumGoalInputs =>
+        UserProfileValidation.HasMinimumGoalInputs(
+            AnnualSalary,
+            CurrentInvestments,
+            CurrentCashSavings);
 }

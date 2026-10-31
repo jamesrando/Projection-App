@@ -7,6 +7,7 @@ export interface UserProfile {
   savingsInterestRate: number | null
   monthlyInvestmentContributions: number | null
   totalPosition: number
+  hasMinimumGoalInputs: boolean
 }
 
 export interface SaveUserProfileRequest {

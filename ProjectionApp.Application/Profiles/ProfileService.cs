@@ -1,6 +1,7 @@
 using FluentResults;
 using ProjectionApp.Application.Common;
 using ProjectionApp.Domain.Entities;
+using ProjectionApp.Domain.Profiles;
 
 namespace ProjectionApp.Application.Profiles;
 
@@ -18,10 +19,18 @@ public sealed class ProfileService(IUserProfileRepository repository) : IProfile
         SaveUserProfileRequest request,
         CancellationToken cancellationToken = default)
     {
-        var validation = ValidateRequest(request);
-        if (validation.IsFailed)
+        var validationErrors = UserProfileValidation.Validate(
+            request.AnnualSalary,
+            request.CurrentInvestments,
+            request.CurrentCashSavings,
+            request.InvestmentInterestRate,
+            request.SavingsInterestRate,
+            request.MonthlyInvestmentContributions);
+
+        if (validationErrors.Count > 0)
         {
-            return Result.Fail<UserProfileDto>(validation.Errors);
+            return Result.Fail<UserProfileDto>(
+                validationErrors.Select(message => new ValidationError(message)).ToArray());
         }
 
         var existing = await repository.GetAsync(cancellationToken);
@@ -40,41 +49,6 @@ public sealed class ProfileService(IUserProfileRepository repository) : IProfile
         return Result.Ok(ToDto(saved));
     }
 
-    private static Result ValidateRequest(SaveUserProfileRequest request)
-    {
-        if (request.AnnualSalary is < 0)
-        {
-            return Result.Fail(new ValidationError("Annual salary cannot be negative."));
-        }
-
-        if (request.CurrentInvestments is < 0)
-        {
-            return Result.Fail(new ValidationError("Current investments cannot be negative."));
-        }
-
-        if (request.CurrentCashSavings is < 0)
-        {
-            return Result.Fail(new ValidationError("Current cash savings cannot be negative."));
-        }
-
-        if (request.InvestmentInterestRate is < 0 or > 100)
-        {
-            return Result.Fail(new ValidationError("Investment interest rate must be between 0 and 100."));
-        }
-
-        if (request.SavingsInterestRate is < 0 or > 100)
-        {
-            return Result.Fail(new ValidationError("Savings interest rate must be between 0 and 100."));
-        }
-
-        if (request.MonthlyInvestmentContributions is < 0)
-        {
-            return Result.Fail(new ValidationError("Monthly investment contributions cannot be negative."));
-        }
-
-        return Result.Ok();
-    }
-
     internal static UserProfileDto ToDto(UserProfile profile) =>
         new(
             profile.Id,
@@ -84,5 +58,6 @@ public sealed class ProfileService(IUserProfileRepository repository) : IProfile
             profile.InvestmentInterestRate,
             profile.SavingsInterestRate,
             profile.MonthlyInvestmentContributions,
-            profile.TotalPosition);
+            profile.TotalPosition,
+            profile.HasMinimumGoalInputs);
 }

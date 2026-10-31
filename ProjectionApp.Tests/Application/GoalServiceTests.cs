@@ -135,7 +135,9 @@ public class GoalServiceTests
         var result = await service.AnalyzeSavingsGoalAsync();
 
         Assert.True(result.IsFailed);
-        Assert.Contains("Profile is incomplete. Provide at least a balance.", result.Errors.Select(e => e.Message));
+        Assert.Contains(
+            ProjectionApp.Domain.Profiles.UserProfileValidation.IncompleteForGoalsMessage,
+            result.Errors.Select(e => e.Message));
     }
 
     [Fact]

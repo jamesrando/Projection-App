@@ -28,6 +28,7 @@ public class ProfileServiceTests
         Assert.Equal(4.25m, saved.SavingsInterestRate);
         Assert.Equal(500m, saved.MonthlyInvestmentContributions);
         Assert.Equal(75_000m, saved.TotalPosition);
+        Assert.True(saved.HasMinimumGoalInputs);
 
         var loadedResult = await service.GetAsync();
         Assert.True(loadedResult.IsSuccess);
@@ -36,6 +37,17 @@ public class ProfileServiceTests
         Assert.Equal(75_000m, loaded.TotalPosition);
         Assert.Equal(7.5m, loaded.InvestmentInterestRate);
         Assert.Equal(4.25m, loaded.SavingsInterestRate);
+    }
+
+    [Fact]
+    public async Task SaveAsync_ReportsIncompleteWhenNoGoalInputs()
+    {
+        var service = new ProfileService(new FakeUserProfileRepository());
+
+        var savedResult = await service.SaveAsync(new SaveUserProfileRequest(null, null, null));
+
+        Assert.True(savedResult.IsSuccess);
+        Assert.False(savedResult.Value.HasMinimumGoalInputs);
     }
 
     [Fact]

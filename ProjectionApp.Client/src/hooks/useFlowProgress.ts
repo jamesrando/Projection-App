@@ -11,11 +11,13 @@ import { useSavedGoalRuns } from './useSavedGoalRuns'
 export type FlowUnlocks = Record<FlowStepId, boolean>
 
 export function useFlowProgress() {
-  const { savedToServer, hasBalance, saving, savePending, profile } = useProfile()
+  const { savedToServer, isProfileCompleteForGoals, saving, savePending, profile } =
+    useProfile()
   const { result } = useGoal()
   const { savedRuns } = useSavedGoalRuns()
 
-  const financesComplete = savedToServer && hasBalance && !saving && !savePending
+  const financesComplete =
+    savedToServer && isProfileCompleteForGoals && !saving && !savePending
   const hasResults = result !== null || savedRuns.length > 0
   const canAccessSalary = profile.annualSalary !== null && profile.annualSalary > 0
 

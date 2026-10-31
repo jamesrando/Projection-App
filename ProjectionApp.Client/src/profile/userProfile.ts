@@ -26,10 +26,3 @@ export function totalPosition(profile: ProfileFormState): number | null {
   return (currentInvestments ?? 0) + (currentCashSavings ?? 0)
 }
 
-export function hasAnyBalance(profile: ProfileFormState): boolean {
-  return (
-    profile.annualSalary !== null ||
-    profile.currentInvestments !== null ||
-    profile.currentCashSavings !== null
-  )
-}

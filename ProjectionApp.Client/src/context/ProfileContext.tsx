@@ -8,11 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { getProfile, saveProfile } from '../api/profile'
-import {
-  emptyProfileForm,
-  hasAnyBalance,
-  type ProfileFormState,
-} from '../profile/userProfile'
+import { emptyProfileForm, type ProfileFormState } from '../profile/userProfile'
 import type { UserProfile } from '../types/profile'
 
 type ProfileField = keyof ProfileFormState
@@ -24,8 +20,9 @@ interface ProfileContextValue {
   savePending: boolean
   error: string | null
   savedToServer: boolean
+  /** Last server-evaluated completeness; only updated after successful GET/PUT */
+  isProfileCompleteForGoals: boolean
   profileVersion: number
-  hasBalance: boolean
   updateField: (field: ProfileField, value: number | null) => void
   retryLoad: () => void
   retrySave: () => void
@@ -45,6 +42,15 @@ function toFormState(profile: UserProfile): ProfileFormState {
   }
 }
 
+function applyServerProfile(
+  data: UserProfile,
+  setProfile: (profile: ProfileFormState) => void,
+  setIsProfileCompleteForGoals: (complete: boolean) => void,
+) {
+  setProfile(toFormState(data))
+  setIsProfileCompleteForGoals(data.hasMinimumGoalInputs)
+}
+
 const SAVE_DEBOUNCE_MS = 400
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
@@ -54,6 +60,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [savePending, setSavePending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [savedToServer, setSavedToServer] = useState(false)
+  const [isProfileCompleteForGoals, setIsProfileCompleteForGoals] = useState(false)
   const [profileVersion, setProfileVersion] = useState(0)
 
   const profileRef = useRef(profile)
@@ -70,8 +77,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     try {
       const data = await getProfile()
       if (data) {
-        setProfile(toFormState(data))
+        applyServerProfile(data, setProfile, setIsProfileCompleteForGoals)
         setSavedToServer(true)
+      } else {
+        setIsProfileCompleteForGoals(false)
+        setSavedToServer(false)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load profile')
@@ -89,7 +99,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     setError(null)
 
     try {
-      await saveProfile(nextProfile)
+      const saved = await saveProfile(nextProfile)
+      applyServerProfile(saved, setProfile, setIsProfileCompleteForGoals)
       setSavedToServer(true)
       profileVersionRef.current += 1
       setProfileVersion(profileVersionRef.current)
@@ -163,8 +174,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     savePending,
     error,
     savedToServer,
+    isProfileCompleteForGoals,
     profileVersion,
-    hasBalance: hasAnyBalance(profile),
     updateField,
     retryLoad: () => void loadProfile(),
     retrySave,

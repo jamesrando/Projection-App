@@ -1,3 +1,5 @@
+import { MAX_INTEREST_RATE_PERCENT, MIN_INTEREST_RATE_PERCENT } from '../profile/profileRules'
+
 export function formatPercent(value: number | null): string {
   if (value === null) {
     return '—'
@@ -14,7 +16,11 @@ export function parsePercentInput(raw: string): number | null {
   }
 
   const parsed = Number(trimmed)
-  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+  if (
+    !Number.isFinite(parsed) ||
+    parsed < MIN_INTEREST_RATE_PERCENT ||
+    parsed > MAX_INTEREST_RATE_PERCENT
+  ) {
     return null
   }
 
@@ -32,8 +38,8 @@ export function validatePercentInput(raw: string): string | null {
     return 'Enter a valid number'
   }
 
-  if (parsed < 0 || parsed > 100) {
-    return 'Enter a value between 0 and 100'
+  if (parsed < MIN_INTEREST_RATE_PERCENT || parsed > MAX_INTEREST_RATE_PERCENT) {
+    return `Enter a value between ${MIN_INTEREST_RATE_PERCENT} and ${MAX_INTEREST_RATE_PERCENT}`
   }
 
   return null

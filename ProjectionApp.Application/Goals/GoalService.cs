@@ -3,6 +3,7 @@ using ProjectionApp.Application.Common;
 using ProjectionApp.Application.Profiles;
 using ProjectionApp.Domain.Entities;
 using ProjectionApp.Domain.Goals;
+using ProjectionApp.Domain.Profiles;
 
 namespace ProjectionApp.Application.Goals;
 
@@ -22,10 +23,10 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
                 new ValidationError("Profile has not been saved yet."));
         }
 
-        if (!profile.HasAnyBalance)
+        if (!profile.HasMinimumGoalInputs)
         {
             return Result.Fail<SavingsGoalResultDto>(
-                new ValidationError("Profile is incomplete. Provide at least a balance."));
+                new ValidationError(UserProfileValidation.IncompleteForGoalsMessage));
         }
 
         var resolvedTarget = targetAmount ?? DefaultTargetAmount;
