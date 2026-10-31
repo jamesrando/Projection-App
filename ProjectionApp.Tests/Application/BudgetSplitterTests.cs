@@ -1,4 +1,4 @@
-using ProjectionApp.Application.Salary;
+using ProjectionApp.Domain.Finance;
 
 namespace ProjectionApp.Tests.Application;
 

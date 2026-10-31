@@ -1,6 +1,7 @@
 using FluentResults;
 using ProjectionApp.Application.Common;
 using ProjectionApp.Application.Profiles;
+using ProjectionApp.Domain.Finance;
 
 namespace ProjectionApp.Application.Salary;
 
@@ -30,10 +31,10 @@ public sealed class SalaryService(IUserProfileRepository repository) : ISalarySe
 
         return Result.Ok(new TakeHomeResultDto(
             AnnualGrossSalary: annualGrossSalary,
-            TaxBreakdown: taxBreakdown,
+            TaxBreakdown: taxBreakdown.ToDto(),
             NetAnnual: netAnnual,
             NetMonthly: netMonthly,
-            BudgetSplit: budgetSplit,
+            BudgetSplit: budgetSplit.ToDto(),
             TaxYear: UkTaxCalculator.TaxYear));
     }
 

@@ -1,4 +1,4 @@
-namespace ProjectionApp.Application.Salary;
+namespace ProjectionApp.Domain.Finance;
 
 public static class UkTaxCalculator
 {
@@ -14,13 +14,13 @@ public static class UkTaxCalculator
     private const decimal NiMainRate = 0.08m;
     private const decimal NiAdditionalRate = 0.02m;
 
-    public static TaxBreakdownDto Calculate(decimal annualGrossSalary)
+    public static TaxBreakdown Calculate(decimal annualGrossSalary)
     {
         var incomeTax = CalculateIncomeTax(annualGrossSalary);
         var nationalInsurance = CalculateNationalInsurance(annualGrossSalary);
         var totalDeductions = incomeTax + nationalInsurance;
 
-        return new TaxBreakdownDto(
+        return new TaxBreakdown(
             IncomeTaxAnnual: RoundPence(incomeTax),
             NationalInsuranceAnnual: RoundPence(nationalInsurance),
             TotalDeductionsAnnual: RoundPence(totalDeductions),

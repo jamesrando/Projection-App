@@ -1,9 +1,9 @@
-using ProjectionApp.Application.Salary;
 using ProjectionApp.Domain.Entities;
+using ProjectionApp.Domain.Finance;
 
-namespace ProjectionApp.Application.Goals;
+namespace ProjectionApp.Domain.Goals;
 
-internal static class GoalContributionCalculator
+public static class GoalContributionResolver
 {
     public static (decimal EffectiveMonthlyContribution, bool InferredFromSalary) Resolve(UserProfile profile)
     {
