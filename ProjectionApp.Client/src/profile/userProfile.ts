@@ -16,14 +16,6 @@ export const emptyProfileForm = (): ProfileFormState => ({
   monthlyInvestmentContributions: null,
 })
 
-export function monthlyCashFlow(annualSalary: number | null): number | null {
-  if (annualSalary === null) {
-    return null
-  }
-
-  return annualSalary / 12
-}
-
 export function totalPosition(profile: ProfileFormState): number | null {
   const { currentInvestments, currentCashSavings } = profile
 

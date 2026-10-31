@@ -1,12 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { hasAnyBalance, monthlyCashFlow, totalPosition } from './userProfile'
+import { hasAnyBalance, totalPosition } from './userProfile'
 
 describe('userProfile helpers', () => {
-  it('derives monthly cash flow from annual salary', () => {
-    expect(monthlyCashFlow(60_000)).toBe(5_000)
-    expect(monthlyCashFlow(null)).toBeNull()
-  })
-
   it('sums investments and savings for total position', () => {
     expect(
       totalPosition({

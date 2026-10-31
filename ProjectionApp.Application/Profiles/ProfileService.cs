@@ -84,6 +84,5 @@ public sealed class ProfileService(IUserProfileRepository repository) : IProfile
             profile.InvestmentInterestRate,
             profile.SavingsInterestRate,
             profile.MonthlyInvestmentContributions,
-            profile.MonthlyCashFlow,
             profile.TotalPosition);
 }

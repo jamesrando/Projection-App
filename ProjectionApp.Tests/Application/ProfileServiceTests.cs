@@ -27,7 +27,6 @@ public class ProfileServiceTests
         Assert.Equal(7.5m, saved.InvestmentInterestRate);
         Assert.Equal(4.25m, saved.SavingsInterestRate);
         Assert.Equal(500m, saved.MonthlyInvestmentContributions);
-        Assert.Equal(100_000m / 12m, saved.MonthlyCashFlow);
         Assert.Equal(75_000m, saved.TotalPosition);
 
         var loadedResult = await service.GetAsync();

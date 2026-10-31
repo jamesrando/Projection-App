@@ -6,7 +6,6 @@ export interface UserProfile {
   investmentInterestRate: number | null
   savingsInterestRate: number | null
   monthlyInvestmentContributions: number | null
-  monthlyCashFlow: number | null
   totalPosition: number
 }
 

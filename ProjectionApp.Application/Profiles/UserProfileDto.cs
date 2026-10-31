@@ -8,5 +8,4 @@ public sealed record UserProfileDto(
     decimal? InvestmentInterestRate,
     decimal? SavingsInterestRate,
     decimal? MonthlyInvestmentContributions,
-    decimal? MonthlyCashFlow,
     decimal TotalPosition);

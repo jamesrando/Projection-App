@@ -16,8 +16,6 @@ public sealed class UserProfile
 
     public decimal? MonthlyInvestmentContributions { get; init; }
 
-    public decimal? MonthlyCashFlow => AnnualSalary is null ? null : AnnualSalary / 12m;
-
     public decimal TotalPosition => (CurrentInvestments ?? 0m) + (CurrentCashSavings ?? 0m);
 
     public bool HasAnyBalance =>

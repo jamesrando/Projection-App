@@ -33,7 +33,6 @@ export interface SavingsGoalResult {
   currentPosition: number
   remainingAmount: number
   progressPercent: number
-  monthlyCashFlow: number | null
   estimatedMonthsToGoal: number | null
   estimatedYearsToGoal: number | null
   investmentInterestRate: number | null

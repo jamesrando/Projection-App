@@ -5,7 +5,6 @@ public sealed record SavingsGoalResultDto(
     decimal CurrentPosition,
     decimal RemainingAmount,
     decimal ProgressPercent,
-    decimal? MonthlyCashFlow,
     int? EstimatedMonthsToGoal,
     decimal? EstimatedYearsToGoal,
     decimal? InvestmentInterestRate,

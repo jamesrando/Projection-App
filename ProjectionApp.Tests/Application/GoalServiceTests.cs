@@ -24,7 +24,6 @@ public class GoalServiceTests
         Assert.Equal(75_000m, result.CurrentPosition);
         Assert.Equal(25_000m, result.RemainingAmount);
         Assert.Equal(75m, result.ProgressPercent);
-        Assert.Equal(100_000m / 12m, result.MonthlyCashFlow);
         Assert.Null(result.MonthlyInvestmentContributions);
         Assert.True(result.ContributionsInferredFromSalary);
         Assert.Equal(1_142.62m, result.EffectiveMonthlyContributions);
@@ -226,7 +225,6 @@ public class GoalServiceTests
 
         var result = (await service.AnalyzeSavingsGoalAsync()).Value;
 
-        Assert.Null(result.MonthlyCashFlow);
         Assert.Equal(167, result.EstimatedMonthsToGoal);
         Assert.Equal(13.92m, result.EstimatedYearsToGoal);
         Assert.True(result.IsReachable);

@@ -12,7 +12,6 @@ const sampleResult: SavingsGoalResult = {
   currentPosition: 75_000,
   remainingAmount: 25_000,
   progressPercent: 75,
-  monthlyCashFlow: 8_333.33,
   estimatedMonthsToGoal: 22,
   estimatedYearsToGoal: 1.83,
   investmentInterestRate: null,

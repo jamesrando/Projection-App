@@ -50,7 +50,6 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
         var progressPercent = currentPosition <= 0m
             ? 0m
             : Math.Min(100m, currentPosition / targetAmount * 100m);
-        var monthlyCashFlow = profile.MonthlyCashFlow;
         var isGoalMet = currentPosition >= targetAmount;
         var (monthlyContribution, contributionsInferredFromSalary) = ResolveContribution(profile, overrides);
         var investmentInterestRate = overrides?.InvestmentInterestRate ?? profile.InvestmentInterestRate;
@@ -110,7 +109,6 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             currentPosition,
             remainingAmount,
             progressPercent,
-            monthlyCashFlow,
             estimatedMonths,
             estimatedYears,
             investmentInterestRate,
