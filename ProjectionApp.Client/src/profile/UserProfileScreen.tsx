@@ -1,82 +1,17 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CurrencyField } from '../components/CurrencyField'
+import { InvestmentsSavingsSplit } from '../components/InvestmentsSavingsSplit'
 import { PageHeader } from '../components/PageHeader'
 import { PercentField } from '../components/PercentField'
 import { Skeleton } from '../components/Skeleton'
 import { useProfile } from '../context/ProfileContext'
 import { formatCurrency } from '../format/currency'
 import { formatPercent } from '../format/percent'
+import { sharePercentOfTotal } from '../format/share'
 import { totalPosition, type ProfileFormState } from './userProfile'
 
 type ProfileField = keyof ProfileFormState
-
-function formatShare(value: number): string {
-  return `${value.toFixed(1)}%`
-}
-
-function sharePercent(amount: number, total: number): number {
-  if (total <= 0) {
-    return 0
-  }
-
-  return Math.round((amount / total) * 1000) / 10
-}
-
-interface PositionSplitProps {
-  investments: number
-  savings: number
-  investmentsShare: number
-  savingsShare: number
-}
-
-function PositionSplit({
-  investments,
-  savings,
-  investmentsShare,
-  savingsShare,
-}: PositionSplitProps) {
-  return (
-    <div className="goal-split profile-summary__split">
-      <div
-        className="goal-split__bar"
-        role="img"
-        aria-label={`Investments ${formatShare(investmentsShare)}, savings ${formatShare(savingsShare)}`}
-      >
-        {investmentsShare > 0 && (
-          <span
-            className="goal-split__segment goal-split__segment--investments"
-            style={{ width: `${investmentsShare}%` }}
-          />
-        )}
-        {savingsShare > 0 && (
-          <span
-            className="goal-split__segment goal-split__segment--savings"
-            style={{ width: `${savingsShare}%` }}
-          />
-        )}
-      </div>
-      <ul className="goal-split__legend">
-        <li className="goal-split__legend-item">
-          <span className="goal-split__dot goal-split__dot--investments" aria-hidden="true" />
-          <div className="goal-split__legend-copy">
-            <span className="goal-split__legend-label">Investments</span>
-            <span className="goal-split__legend-value">{formatCurrency(investments)}</span>
-          </div>
-          <span className="goal-split__legend-share">{formatShare(investmentsShare)}</span>
-        </li>
-        <li className="goal-split__legend-item">
-          <span className="goal-split__dot goal-split__dot--savings" aria-hidden="true" />
-          <div className="goal-split__legend-copy">
-            <span className="goal-split__legend-label">Cash savings</span>
-            <span className="goal-split__legend-value">{formatCurrency(savings)}</span>
-          </div>
-          <span className="goal-split__legend-share">{formatShare(savingsShare)}</span>
-        </li>
-      </ul>
-    </div>
-  )
-}
 
 interface ProfileSectionProps {
   title: string
@@ -127,8 +62,8 @@ export function UserProfileScreen() {
   const position = totalPosition(profile) ?? 0
   const investments = profile.currentInvestments ?? 0
   const savings = profile.currentCashSavings ?? 0
-  const investmentsShare = sharePercent(investments, position)
-  const savingsShare = sharePercent(savings, position)
+  const investmentsShare = sharePercentOfTotal(investments, position)
+  const savingsShare = sharePercentOfTotal(savings, position)
   const profileSynced = savedToServer && !saving && !savePending
   const canContinue = profileSynced && isProfileCompleteForGoals
   const hasFieldErrors = Object.keys(fieldErrors).length > 0
@@ -184,7 +119,8 @@ export function UserProfileScreen() {
               </div>
 
               {position > 0 && (
-                <PositionSplit
+                <InvestmentsSavingsSplit
+                  className="profile-summary__split"
                   investments={investments}
                   savings={savings}
                   investmentsShare={investmentsShare}

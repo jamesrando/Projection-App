@@ -1,6 +1,18 @@
 @ProjectionApp.Api_HostAddress = http://localhost:5171
 
-GET {{ProjectionApp.Api_HostAddress}}/weatherforecast/
+GET {{ProjectionApp.Api_HostAddress}}/health
 Accept: application/json
 
 ###
+
+GET {{ProjectionApp.Api_HostAddress}}/api/profile
+Accept: application/json
+
+###
+
+POST {{ProjectionApp.Api_HostAddress}}/api/goals/analyze
+Content-Type: application/json
+
+{
+  "targetAmount": 100000
+}

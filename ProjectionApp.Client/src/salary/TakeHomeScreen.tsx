@@ -6,11 +6,8 @@ import { PageHeader } from '../components/PageHeader'
 import { StatCard } from '../components/StatCard'
 import { useProfile } from '../context/ProfileContext'
 import { currencySymbol, formatCurrency } from '../format/currency'
+import { formatSharePercent } from '../format/share'
 import type { BudgetSplit, TakeHomeResult } from '../types/salary'
-
-function formatShare(value: number): string {
-  return `${value.toFixed(0)}%`
-}
 
 interface BudgetSplitBarProps {
   split: BudgetSplit
@@ -52,7 +49,7 @@ function BudgetSplitBar({ split }: BudgetSplitBarProps) {
       <div
         className="goal-split__bar"
         role="img"
-        aria-label={`Needs ${formatShare(split.needs.percent)}, wants ${formatShare(split.wants.percent)}, savings ${formatShare(split.savings.percent)}`}
+        aria-label={`Needs ${formatSharePercent(split.needs.percent, 0)}, wants ${formatSharePercent(split.wants.percent, 0)}, savings ${formatSharePercent(split.savings.percent, 0)}`}
       >
         {categories.map((category) =>
           category.share > 0 ? (
@@ -73,7 +70,9 @@ function BudgetSplitBar({ split }: BudgetSplitBarProps) {
               <span className="goal-split__legend-value">{formatCurrency(category.amount)}</span>
               <span className="goal-split__legend-hint">{category.description}</span>
             </div>
-            <span className="goal-split__legend-share">{formatShare(category.share)}</span>
+            <span className="goal-split__legend-share">
+              {formatSharePercent(category.share, 0)}
+            </span>
           </li>
         ))}
       </ul>

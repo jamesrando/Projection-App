@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
+import { InvestmentsSavingsSplit } from '../components/InvestmentsSavingsSplit'
 import { StatCard } from '../components/StatCard'
 import { formatCurrency } from '../format/currency'
 import { formatPercent } from '../format/percent'
+import { formatSharePercent, sharePercentOfTotal } from '../format/share'
 import type { GoalBreakdown, SavingsGoalResult } from '../types/goal'
 import { GoalTimelineChart } from './GoalTimelineChart'
 import { formatMonthsDelta } from './useWhatIfAnalysis'
@@ -15,75 +17,8 @@ function formatMonths(months: number): string {
   return `${months} ${months === 1 ? 'month' : 'months'}`
 }
 
-function formatShare(value: number): string {
-  return `${value.toFixed(1)}%`
-}
-
 function hasSimulatedBreakdown(breakdown: GoalBreakdown): boolean {
   return breakdown.projectedInvestments !== null && breakdown.projectedCashSavings !== null
-}
-
-function projectedShare(amount: number, total: number): number {
-  if (total <= 0) {
-    return 0
-  }
-
-  return Math.round((amount / total) * 1000) / 10
-}
-
-interface PositionSplitProps {
-  investments: number
-  savings: number
-  investmentsShare: number
-  savingsShare: number
-}
-
-function PositionSplit({
-  investments,
-  savings,
-  investmentsShare,
-  savingsShare,
-}: PositionSplitProps) {
-  return (
-    <div className="goal-split">
-      <div
-        className="goal-split__bar"
-        role="img"
-        aria-label={`Investments ${formatShare(investmentsShare)}, savings ${formatShare(savingsShare)}`}
-      >
-        {investmentsShare > 0 && (
-          <span
-            className="goal-split__segment goal-split__segment--investments"
-            style={{ width: `${investmentsShare}%` }}
-          />
-        )}
-        {savingsShare > 0 && (
-          <span
-            className="goal-split__segment goal-split__segment--savings"
-            style={{ width: `${savingsShare}%` }}
-          />
-        )}
-      </div>
-      <ul className="goal-split__legend">
-        <li className="goal-split__legend-item">
-          <span className="goal-split__dot goal-split__dot--investments" aria-hidden="true" />
-          <div className="goal-split__legend-copy">
-            <span className="goal-split__legend-label">Investments</span>
-            <span className="goal-split__legend-value">{formatCurrency(investments)}</span>
-          </div>
-          <span className="goal-split__legend-share">{formatShare(investmentsShare)}</span>
-        </li>
-        <li className="goal-split__legend-item">
-          <span className="goal-split__dot goal-split__dot--savings" aria-hidden="true" />
-          <div className="goal-split__legend-copy">
-            <span className="goal-split__legend-label">Cash savings</span>
-            <span className="goal-split__legend-value">{formatCurrency(savings)}</span>
-          </div>
-          <span className="goal-split__legend-share">{formatShare(savingsShare)}</span>
-        </li>
-      </ul>
-    </div>
-  )
 }
 
 interface AssumptionTileProps {
@@ -127,7 +62,7 @@ function GrowthComposition({
       <div
         className="goal-composition__bar"
         role="img"
-        aria-label={`Contributions ${formatShare(contributionsShare)}, interest ${formatShare(interestShare)}`}
+        aria-label={`Contributions ${formatSharePercent(contributionsShare)}, interest ${formatSharePercent(interestShare)}`}
       >
         {contributionsShare > 0 && (
           <span
@@ -306,7 +241,7 @@ export function GoalResults({ result, compareBaseline, afterHero }: GoalResultsP
 
       <div className="goal-panels">
         <GoalPanel title="Current position" description="How your total balance is split today.">
-          <PositionSplit
+          <InvestmentsSavingsSplit
             investments={breakdown.currentInvestments}
             savings={breakdown.currentCashSavings}
             investmentsShare={breakdown.investmentsSharePercent}
@@ -357,11 +292,14 @@ export function GoalResults({ result, compareBaseline, afterHero }: GoalResultsP
               title="At goal"
               description={`Projected split after ${formatMonths(result.estimatedMonthsToGoal!)}.`}
             >
-              <PositionSplit
+              <InvestmentsSavingsSplit
                 investments={breakdown.projectedInvestments!}
                 savings={breakdown.projectedCashSavings!}
-                investmentsShare={projectedShare(breakdown.projectedInvestments!, projectedTotal)}
-                savingsShare={projectedShare(breakdown.projectedCashSavings!, projectedTotal)}
+                investmentsShare={sharePercentOfTotal(
+                  breakdown.projectedInvestments!,
+                  projectedTotal,
+                )}
+                savingsShare={sharePercentOfTotal(breakdown.projectedCashSavings!, projectedTotal)}
               />
               <div className="goal-panel__footer-stat">
                 <span>Projected total</span>
