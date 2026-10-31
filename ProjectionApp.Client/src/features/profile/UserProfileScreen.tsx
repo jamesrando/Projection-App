@@ -9,7 +9,7 @@ import { formatCurrency } from '@/shared/lib/format/currency'
 import { formatPercent } from '@/shared/lib/format/percent'
 import { sharePercentOfTotal } from '@/shared/lib/format/share'
 import { useProfile } from './useProfile'
-import { totalPosition, type ProfileFormState } from './model'
+import { hasMinimumFinancesInputs, totalPosition, type ProfileFormState } from './model'
 
 type ProfileField = keyof ProfileFormState
 
@@ -40,7 +40,6 @@ export function UserProfileScreen() {
     savePending,
     error,
     savedToServer,
-    isProfileCompleteForGoals,
     updateField,
     retryLoad,
     retrySave,
@@ -64,8 +63,9 @@ export function UserProfileScreen() {
   const savings = profile.currentCashSavings ?? 0
   const investmentsShare = sharePercentOfTotal(investments, position)
   const savingsShare = sharePercentOfTotal(savings, position)
+  const meetsMinimum = hasMinimumFinancesInputs(profile)
   const profileSynced = savedToServer && !saving && !savePending
-  const canContinue = profileSynced && isProfileCompleteForGoals
+  const canContinue = profileSynced && meetsMinimum
   const hasFieldErrors = Object.keys(fieldErrors).length > 0
 
   return (
@@ -221,12 +221,12 @@ export function UserProfileScreen() {
               aria-atomic="true"
             >
               {(saving || savePending) && <p className="profile__save-status">Saving…</p>}
-              {!saving && !savePending && savedToServer && isProfileCompleteForGoals && (
+              {!saving && !savePending && savedToServer && meetsMinimum && (
                 <p className="profile__save-status profile__save-status--saved">Profile saved</p>
               )}
-              {!saving && !savePending && savedToServer && !isProfileCompleteForGoals && (
+              {!saving && !savePending && savedToServer && !meetsMinimum && (
                 <p className="profile__save-status">
-                  Enter salary, investments, or cash savings to continue
+                  Add an investment or cash savings balance to continue
                 </p>
               )}
             </div>

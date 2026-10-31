@@ -9,8 +9,12 @@ interface FlowGuardProps {
 }
 
 export function FlowGuard({ step, children }: FlowGuardProps) {
-  const { unlocked, financesComplete } = useFlowProgress()
+  const { unlocked, financesComplete, profileLoading } = useFlowProgress()
   const canAccess = unlocked[step]
+
+  if (profileLoading) {
+    return <p className="app__status">Loading your finances…</p>
+  }
 
   if (!canAccess) {
     return <Navigate to={redirectPathForStep(step, financesComplete)} replace />

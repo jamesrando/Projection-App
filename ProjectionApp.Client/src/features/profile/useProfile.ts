@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect } from 'react'
 import { getProfile, saveProfile } from './api'
-import { emptyProfileForm, type ProfileFormState } from './model'
+import { emptyProfileForm, hasMinimumFinancesInputs, type ProfileFormState } from './model'
 import type { UserProfile } from './types'
 
 export const profileQueryKey = ['profile'] as const
@@ -179,7 +179,7 @@ export function useProfile() {
     savePending: data.savePending,
     error: saveError ?? loadError,
     savedToServer: data.savedToServer,
-    isProfileCompleteForGoals: data.isProfileCompleteForGoals,
+    isProfileCompleteForGoals: hasMinimumFinancesInputs(data.form),
     profileVersion: data.profileVersion,
     updateField,
     retryLoad: () => void query.refetch(),

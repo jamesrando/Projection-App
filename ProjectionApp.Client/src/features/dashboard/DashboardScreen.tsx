@@ -26,6 +26,7 @@ export function DashboardScreen() {
   const { result } = useGoal()
   const { savedRuns } = useSavedGoalRuns()
   const { nextPath, financesComplete, hasResults } = useFlowProgress()
+  const canOpenLaterSteps = financesComplete && hasResults
 
   return (
     <div className="dashboard">
@@ -39,7 +40,7 @@ export function DashboardScreen() {
           a goal — based on compound interest and monthly contributions. No account needed.
         </p>
         <div className="hero__actions">
-          {hasResults ? (
+          {canOpenLaterSteps ? (
             <>
               <Link to="/results" className="hero__cta hero__cta--primary">
                 View your results
@@ -80,7 +81,7 @@ export function DashboardScreen() {
         </ol>
       </section>
 
-      {hasResults && (
+      {canOpenLaterSteps && (
         <section className="dashboard-session" aria-labelledby="session-title">
           <h2 id="session-title" className="dashboard-session__title">
             Your latest calculation
@@ -107,7 +108,7 @@ export function DashboardScreen() {
 
       {!financesComplete && (
         <p className="dashboard__hint">
-          Start with step 1 — enter at least one balance or your salary to unlock the calculator.
+          Start with step 1 — add at least one investment or cash savings balance to unlock the calculator.
         </p>
       )}
     </div>

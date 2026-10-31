@@ -41,6 +41,20 @@ export function pathToStepId(pathname: string): FlowStepId {
   return 'home'
 }
 
+export function flowUnlocks(input: {
+  financesComplete: boolean
+  hasResults: boolean
+  canAccessSalary: boolean
+}): Record<FlowStepId, boolean> {
+  return {
+    home: true,
+    finances: true,
+    calculator: input.financesComplete,
+    results: input.financesComplete && input.hasResults,
+    salary: input.canAccessSalary,
+  }
+}
+
 export function redirectPathForStep(step: FlowStepId, financesComplete: boolean): string {
   switch (step) {
     case 'calculator':

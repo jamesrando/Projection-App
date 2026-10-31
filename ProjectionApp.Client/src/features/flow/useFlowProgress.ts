@@ -1,30 +1,32 @@
 import { useMemo } from 'react'
 import { useGoal } from '@/features/goals/useGoal'
 import { useSavedGoalRuns } from '@/features/goals/useSavedGoalRuns'
+import { financesEstablished } from '@/features/profile/model'
 import { useProfile } from '@/features/profile/useProfile'
-import { MAIN_FLOW_STEPS, OPTIONAL_FLOW_STEPS, type FlowStepId } from './flowSteps'
+import { flowUnlocks, MAIN_FLOW_STEPS, OPTIONAL_FLOW_STEPS, type FlowStepId } from './flowSteps'
 
 export type FlowUnlocks = Record<FlowStepId, boolean>
 
 export function useFlowProgress() {
-  const { savedToServer, isProfileCompleteForGoals, saving, savePending, profile } =
-    useProfile()
+  const { savedToServer, saving, savePending, profile, loading } = useProfile()
   const { result } = useGoal()
   const { savedRuns } = useSavedGoalRuns()
 
-  const financesComplete =
-    savedToServer && isProfileCompleteForGoals && !saving && !savePending
+  const financesComplete = financesEstablished(profile, {
+    savedToServer,
+    saving,
+    savePending,
+  })
   const hasResults = result !== null || savedRuns.length > 0
   const canAccessSalary = profile.annualSalary !== null && profile.annualSalary > 0
 
   const unlocked = useMemo<FlowUnlocks>(
-    () => ({
-      home: true,
-      finances: true,
-      calculator: financesComplete,
-      results: hasResults,
-      salary: canAccessSalary,
-    }),
+    () =>
+      flowUnlocks({
+        financesComplete,
+        hasResults,
+        canAccessSalary,
+      }),
     [financesComplete, hasResults, canAccessSalary],
   )
 
@@ -68,6 +70,7 @@ export function useFlowProgress() {
   return {
     unlocked,
     financesComplete,
+    profileLoading: loading,
     hasResults,
     nextPath,
     nextLabel,
