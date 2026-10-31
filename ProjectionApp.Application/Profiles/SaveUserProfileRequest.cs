@@ -6,4 +6,6 @@ public sealed record SaveUserProfileRequest(
     decimal? CurrentCashSavings,
     decimal? InvestmentInterestRate = null,
     decimal? SavingsInterestRate = null,
-    decimal? MonthlyInvestmentContributions = null);
+    decimal? MonthlyInvestmentContributions = null,
+    IReadOnlyList<InvestmentHoldingDto>? InvestmentHoldings = null,
+    bool UseInvestmentBreakdown = false);

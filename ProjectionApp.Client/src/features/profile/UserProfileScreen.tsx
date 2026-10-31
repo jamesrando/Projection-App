@@ -8,6 +8,9 @@ import { Skeleton } from '@/shared/ui/Skeleton'
 import { formatCurrency } from '@/shared/lib/format/currency'
 import { formatPercent } from '@/shared/lib/format/percent'
 import { sharePercentOfTotal } from '@/shared/lib/format/share'
+import { InvestmentBreakdownDisclosure } from './components/InvestmentBreakdownDisclosure'
+import { InvestmentBreakdownEditor } from './components/InvestmentBreakdownEditor'
+import { shouldShowInvestmentBreakdown } from './investmentHoldings'
 import { useProfile } from './useProfile'
 import { hasMinimumFinancesInputs, totalPosition, type ProfileFormState } from './model'
 
@@ -41,10 +44,19 @@ export function UserProfileScreen() {
     error,
     savedToServer,
     updateField,
+    setInvestmentsEntryMode,
+    updateInvestmentHoldings,
+    investmentsEntryMode,
+    investmentHoldings,
     retryLoad,
     retrySave,
   } = useProfile()
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<ProfileField, string>>>({})
+  const [holdingFieldErrors, setHoldingFieldErrors] = useState<
+    Partial<
+      Record<string, Partial<Record<'balance' | 'annualReturnRate' | 'monthlyContribution', string>>>
+    >
+  >({})
 
   function setFieldError(field: ProfileField, message: string | null) {
     setFieldErrors((current) => {
@@ -66,7 +78,40 @@ export function UserProfileScreen() {
   const meetsMinimum = hasMinimumFinancesInputs(profile)
   const profileSynced = savedToServer && !saving && !savePending
   const canContinue = profileSynced && meetsMinimum
-  const hasFieldErrors = Object.keys(fieldErrors).length > 0
+  const hasHoldingFieldErrors = Object.values(holdingFieldErrors).some(
+    (rowErrors) => rowErrors && Object.keys(rowErrors).length > 0,
+  )
+  const hasFieldErrors = Object.keys(fieldErrors).length > 0 || hasHoldingFieldErrors
+  const usingBreakdown = investmentsEntryMode === 'breakdown'
+  const showInvestmentBreakdown = shouldShowInvestmentBreakdown(
+    investmentsEntryMode,
+    investmentHoldings,
+  )
+
+  function setHoldingFieldError(
+    rowId: string,
+    field: 'balance' | 'annualReturnRate' | 'monthlyContribution',
+    message: string | null,
+  ) {
+    setHoldingFieldErrors((current) => {
+      const next = { ...current }
+      const row = { ...(next[rowId] ?? {}) }
+
+      if (message) {
+        row[field] = message
+        next[rowId] = row
+      } else {
+        delete row[field]
+        if (Object.keys(row).length === 0) {
+          delete next[rowId]
+        } else {
+          next[rowId] = row
+        }
+      }
+
+      return next
+    })
+  }
 
   return (
     <div className="profile">
@@ -128,6 +173,13 @@ export function UserProfileScreen() {
                 />
               )}
 
+              {showInvestmentBreakdown && (
+                <InvestmentBreakdownDisclosure
+                  className="profile-summary__breakdown"
+                  holdings={investmentHoldings}
+                />
+              )}
+
               <dl className="profile-summary__tiles">
                 <div className="profile-summary__tile">
                   <dt>Monthly contributions</dt>
@@ -149,40 +201,76 @@ export function UserProfileScreen() {
                 title="Investments"
                 description="Long-term accounts such as ISAs, pensions, and brokerage holdings."
               >
-                <CurrencyField
-                  id="currentInvestments"
-                  label="Current balance"
-                  hint="Total balance across investment accounts."
-                  value={profile.currentInvestments}
-                  disabled={saving}
-                  error={fieldErrors.currentInvestments}
-                  onChange={(value) => updateField('currentInvestments', value)}
-                  onError={(message) => setFieldError('currentInvestments', message)}
-                />
-
-                <div className="profile-section__row">
-                  <PercentField
-                    id="investmentInterestRate"
-                    label="Annual interest rate"
-                    hint="Compounded monthly. Enter 0 to 100."
-                    value={profile.investmentInterestRate}
-                    disabled={saving}
-                    error={fieldErrors.investmentInterestRate}
-                    onChange={(value) => updateField('investmentInterestRate', value)}
-                    onError={(message) => setFieldError('investmentInterestRate', message)}
-                  />
-
-                  <CurrencyField
-                    id="monthlyInvestmentContributions"
-                    label="Monthly contributions"
-                    hint="Optional. Added to investments each month."
-                    value={profile.monthlyInvestmentContributions}
-                    disabled={saving}
-                    error={fieldErrors.monthlyInvestmentContributions}
-                    onChange={(value) => updateField('monthlyInvestmentContributions', value)}
-                    onError={(message) => setFieldError('monthlyInvestmentContributions', message)}
-                  />
+                <div className="profile-section__mode-toggle">
+                  {usingBreakdown ? (
+                    <button
+                      type="button"
+                      className="profile-section__mode-link"
+                      disabled={saving}
+                      onClick={() => setInvestmentsEntryMode('simple')}
+                    >
+                      Use single total instead
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="profile-section__mode-link"
+                      disabled={saving}
+                      onClick={() => setInvestmentsEntryMode('breakdown')}
+                    >
+                      Break down by account or type
+                    </button>
+                  )}
                 </div>
+
+                {usingBreakdown ? (
+                  <InvestmentBreakdownEditor
+                    holdings={investmentHoldings}
+                    disabled={saving}
+                    rowErrors={holdingFieldErrors}
+                    onChange={updateInvestmentHoldings}
+                    onRowFieldError={setHoldingFieldError}
+                  />
+                ) : (
+                  <>
+                    <CurrencyField
+                      id="currentInvestments"
+                      label="Current balance"
+                      hint="Total balance across investment accounts."
+                      value={profile.currentInvestments}
+                      disabled={saving}
+                      error={fieldErrors.currentInvestments}
+                      onChange={(value) => updateField('currentInvestments', value)}
+                      onError={(message) => setFieldError('currentInvestments', message)}
+                    />
+
+                    <div className="profile-section__row">
+                      <PercentField
+                        id="investmentInterestRate"
+                        label="Annual interest rate"
+                        hint="Compounded monthly. Enter 0 to 100."
+                        value={profile.investmentInterestRate}
+                        disabled={saving}
+                        error={fieldErrors.investmentInterestRate}
+                        onChange={(value) => updateField('investmentInterestRate', value)}
+                        onError={(message) => setFieldError('investmentInterestRate', message)}
+                      />
+
+                      <CurrencyField
+                        id="monthlyInvestmentContributions"
+                        label="Monthly contributions"
+                        hint="Optional. Added to investments each month."
+                        value={profile.monthlyInvestmentContributions}
+                        disabled={saving}
+                        error={fieldErrors.monthlyInvestmentContributions}
+                        onChange={(value) => updateField('monthlyInvestmentContributions', value)}
+                        onError={(message) =>
+                          setFieldError('monthlyInvestmentContributions', message)
+                        }
+                      />
+                    </div>
+                  </>
+                )}
               </ProfileSection>
 
               <ProfileSection

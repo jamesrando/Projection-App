@@ -1,3 +1,5 @@
+using ProjectionApp.Domain.Entities;
+
 namespace ProjectionApp.Domain.Profiles;
 
 public static class UserProfileValidation
@@ -17,6 +19,15 @@ public static class UserProfileValidation
         "Savings interest rate must be between 0 and 100.";
     public const string NegativeMonthlyContributionsMessage =
         "Monthly investment contributions cannot be negative.";
+
+    public const string NegativeInvestmentHoldingBalanceMessage =
+        "Investment holding balance cannot be negative.";
+
+    public const string InvalidInvestmentHoldingRateMessage =
+        "Investment holding return rate must be between 0 and 100.";
+
+    public const string NegativeInvestmentHoldingContributionMessage =
+        "Investment holding monthly contribution cannot be negative.";
 
     public static bool HasMinimumGoalInputs(
         decimal? annualSalary,
@@ -64,6 +75,36 @@ public static class UserProfileValidation
         if (monthlyInvestmentContributions is < 0)
         {
             errors.Add(NegativeMonthlyContributionsMessage);
+        }
+
+        return errors;
+    }
+
+    public static IReadOnlyList<string> ValidateHoldings(IReadOnlyList<InvestmentHolding>? holdings)
+    {
+        if (holdings is null || holdings.Count == 0)
+        {
+            return [];
+        }
+
+        var errors = new List<string>();
+
+        foreach (var holding in holdings)
+        {
+            if (holding.Balance is < 0)
+            {
+                errors.Add(NegativeInvestmentHoldingBalanceMessage);
+            }
+
+            if (holding.AnnualReturnRate is < MinInterestRatePercent or > MaxInterestRatePercent)
+            {
+                errors.Add(InvalidInvestmentHoldingRateMessage);
+            }
+
+            if (holding.MonthlyContribution is < 0)
+            {
+                errors.Add(NegativeInvestmentHoldingContributionMessage);
+            }
         }
 
         return errors;

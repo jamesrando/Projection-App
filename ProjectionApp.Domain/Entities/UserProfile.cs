@@ -18,6 +18,10 @@ public sealed class UserProfile
 
     public decimal? MonthlyInvestmentContributions { get; init; }
 
+    public IReadOnlyList<InvestmentHolding>? InvestmentHoldings { get; init; }
+
+    public bool UseInvestmentBreakdown { get; init; }
+
     public decimal TotalPosition => (CurrentInvestments ?? 0m) + (CurrentCashSavings ?? 0m);
 
     public bool HasMinimumGoalInputs =>

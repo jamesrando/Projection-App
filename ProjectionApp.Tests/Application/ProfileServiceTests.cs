@@ -40,6 +40,141 @@ public class ProfileServiceTests
     }
 
     [Fact]
+    public async Task SaveAsync_RollsUpInvestmentHoldingsWhenBreakdownIsProvided()
+    {
+        var service = new ProfileService(new FakeUserProfileRepository());
+
+        var savedResult = await service.SaveAsync(new SaveUserProfileRequest(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            [
+                new InvestmentHoldingDto(
+                    Guid.NewGuid(),
+                    "stocksIsa",
+                    null,
+                    10_000m,
+                    5m,
+                    100m),
+                new InvestmentHoldingDto(
+                    Guid.NewGuid(),
+                    "pension",
+                    null,
+                    30_000m,
+                    7m,
+                    200m),
+            ],
+            UseInvestmentBreakdown: true));
+
+        Assert.True(savedResult.IsSuccess);
+        var saved = savedResult.Value;
+        Assert.Equal(40_000m, saved.CurrentInvestments);
+        Assert.Equal(6.5m, saved.InvestmentInterestRate);
+        Assert.Equal(300m, saved.MonthlyInvestmentContributions);
+        Assert.NotNull(saved.InvestmentHoldings);
+        Assert.Equal(2, saved.InvestmentHoldings!.Count);
+        Assert.True(saved.UseInvestmentBreakdown);
+    }
+
+    [Fact]
+    public async Task SaveAsync_PreservesInvestmentHoldingsWhenSimpleModeSaveOmitsThem()
+    {
+        var repository = new FakeUserProfileRepository();
+        var service = new ProfileService(repository);
+
+        await service.SaveAsync(new SaveUserProfileRequest(
+            null,
+            40_000m,
+            null,
+            6m,
+            null,
+            300m,
+            [
+                new InvestmentHoldingDto(
+                    Guid.NewGuid(),
+                    "stocksIsa",
+                    null,
+                    10_000m,
+                    5m,
+                    100m),
+                new InvestmentHoldingDto(
+                    Guid.NewGuid(),
+                    "pension",
+                    null,
+                    30_000m,
+                    7m,
+                    200m),
+            ],
+            UseInvestmentBreakdown: true));
+
+        var simplified = await service.SaveAsync(new SaveUserProfileRequest(
+            50_000m,
+            40_000m,
+            null,
+            6m,
+            null,
+            300m,
+            null,
+            UseInvestmentBreakdown: false));
+
+        Assert.True(simplified.IsSuccess);
+        Assert.False(simplified.Value.UseInvestmentBreakdown);
+        Assert.Equal(2, simplified.Value.InvestmentHoldings!.Count);
+        Assert.Equal("stocksIsa", simplified.Value.InvestmentHoldings![0].Category);
+        Assert.Equal("pension", simplified.Value.InvestmentHoldings![1].Category);
+    }
+
+    [Fact]
+    public async Task SaveAsync_EmptyHoldingsPayloadPreservesExistingBreakdown()
+    {
+        var repository = new FakeUserProfileRepository();
+        var service = new ProfileService(repository);
+
+        await service.SaveAsync(new SaveUserProfileRequest(
+            null,
+            40_000m,
+            null,
+            6.5m,
+            null,
+            300m,
+            [
+                new InvestmentHoldingDto(
+                    Guid.NewGuid(),
+                    "stocksIsa",
+                    null,
+                    10_000m,
+                    5m,
+                    100m),
+                new InvestmentHoldingDto(
+                    Guid.NewGuid(),
+                    "pension",
+                    null,
+                    30_000m,
+                    8m,
+                    200m),
+            ],
+            UseInvestmentBreakdown: true));
+
+        var resync = await service.SaveAsync(new SaveUserProfileRequest(
+            null,
+            40_000m,
+            null,
+            6.5m,
+            null,
+            300m,
+            [],
+            UseInvestmentBreakdown: true));
+
+        Assert.True(resync.IsSuccess);
+        Assert.Equal(2, resync.Value.InvestmentHoldings!.Count);
+        Assert.Equal("stocksIsa", resync.Value.InvestmentHoldings![0].Category);
+        Assert.Equal("pension", resync.Value.InvestmentHoldings![1].Category);
+    }
+
+    [Fact]
     public async Task SaveAsync_ReportsIncompleteWhenNoGoalInputs()
     {
         var service = new ProfileService(new FakeUserProfileRepository());

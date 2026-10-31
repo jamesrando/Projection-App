@@ -1,3 +1,12 @@
+export interface InvestmentHoldingDto {
+  id: string
+  category: string
+  customLabel: string | null
+  balance: number | null
+  annualReturnRate: number | null
+  monthlyContribution: number | null
+}
+
 export interface UserProfile {
   id: string
   annualSalary: number | null
@@ -6,6 +15,8 @@ export interface UserProfile {
   investmentInterestRate: number | null
   savingsInterestRate: number | null
   monthlyInvestmentContributions: number | null
+  investmentHoldings: InvestmentHoldingDto[] | null
+  useInvestmentBreakdown: boolean
   totalPosition: number
   hasMinimumGoalInputs: boolean
 }
@@ -17,4 +28,6 @@ export interface SaveUserProfileRequest {
   investmentInterestRate: number | null
   savingsInterestRate: number | null
   monthlyInvestmentContributions: number | null
+  investmentHoldings: InvestmentHoldingDto[] | null
+  useInvestmentBreakdown: boolean
 }

@@ -11,6 +11,8 @@ describe('userProfile helpers', () => {
       investmentInterestRate: 7,
       savingsInterestRate: 5,
       monthlyInvestmentContributions: null,
+      investmentsEntryMode: 'simple' as const,
+      investmentHoldings: [],
     }
 
     expect(hasMinimumFinancesInputs(empty)).toBe(false)
@@ -27,6 +29,8 @@ describe('userProfile helpers', () => {
         investmentInterestRate: null,
         savingsInterestRate: null,
         monthlyInvestmentContributions: null,
+        investmentsEntryMode: 'simple',
+        investmentHoldings: [],
       }),
     ).toBe(50_000)
   })
