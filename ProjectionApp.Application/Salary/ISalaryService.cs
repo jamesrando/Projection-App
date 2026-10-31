@@ -1,8 +1,10 @@
+using FluentResults;
+
 namespace ProjectionApp.Application.Salary;
 
 public interface ISalaryService
 {
-    Task<TakeHomeResultDto> CalculateTakeHomeAsync(
+    Task<Result<TakeHomeResultDto>> CalculateTakeHomeAsync(
         CalculateTakeHomeRequest? request = null,
         CancellationToken cancellationToken = default);
 }

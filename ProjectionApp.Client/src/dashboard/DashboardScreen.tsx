@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useGoal } from '../context/GoalContext'
 import { useFlowProgress } from '../hooks/useFlowProgress'
 import { formatCurrency } from '../format/currency'
-import { useSavedProjections } from '../hooks/useSavedProjections'
+import { useSavedGoalRuns } from '../hooks/useSavedGoalRuns'
 
 const steps = [
   {
@@ -12,7 +12,7 @@ const steps = [
   },
   {
     number: '2',
-    title: 'Run a projection',
+    title: 'Run a calculation',
     description: 'Choose a target amount and calculate how long it takes to get there.',
   },
   {
@@ -24,8 +24,8 @@ const steps = [
 
 export function DashboardScreen() {
   const { result } = useGoal()
-  const { projections } = useSavedProjections()
-  const { nextPath, financesComplete, hasProjection } = useFlowProgress()
+  const { savedRuns } = useSavedGoalRuns()
+  const { nextPath, financesComplete, hasResults } = useFlowProgress()
 
   return (
     <div className="dashboard">
@@ -39,13 +39,13 @@ export function DashboardScreen() {
           a goal — based on compound interest and monthly contributions. No account needed.
         </p>
         <div className="hero__actions">
-          {hasProjection ? (
+          {hasResults ? (
             <>
-              <Link to="/projections" className="hero__cta hero__cta--primary">
+              <Link to="/results" className="hero__cta hero__cta--primary">
                 View your results
               </Link>
               <Link to="/calculator" className="hero__cta hero__cta--secondary">
-                Run another projection
+                Run another calculation
               </Link>
             </>
           ) : (
@@ -54,7 +54,7 @@ export function DashboardScreen() {
                 View your results
               </span>
               <Link to={nextPath} className="hero__cta hero__cta--primary">
-                {financesComplete ? 'Run a projection' : 'Start the process'}
+                {financesComplete ? 'Run a calculation' : 'Start the process'}
               </Link>
             </>
           )}
@@ -80,10 +80,10 @@ export function DashboardScreen() {
         </ol>
       </section>
 
-      {hasProjection && (
+      {hasResults && (
         <section className="dashboard-session" aria-labelledby="session-title">
           <h2 id="session-title" className="dashboard-session__title">
-            Your latest projection
+            Your latest calculation
           </h2>
           <div className="dashboard-session__stats">
             {result && (
@@ -96,10 +96,10 @@ export function DashboardScreen() {
             )}
             <div className="session-stat">
               <span className="session-stat__label">Saved this session</span>
-              <span className="session-stat__value">{projections.length}</span>
+              <span className="session-stat__value">{savedRuns.length}</span>
             </div>
           </div>
-          <Link to="/projections" className="dashboard-session__link">
+          <Link to="/results" className="dashboard-session__link">
             Continue to your results →
           </Link>
         </section>

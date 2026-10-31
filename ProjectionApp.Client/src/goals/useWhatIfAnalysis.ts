@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { analyzeReachGoal } from '../api/goals'
-import type { Reach100kGoalResult } from '../types/goal'
+import { analyzeSavingsGoal } from '../api/goals'
+import type { SavingsGoalResult } from '../types/goal'
 
 const DEBOUNCE_MS = 400
 
@@ -27,13 +27,17 @@ export function formatMonthsDelta(
   return delta > 0 ? `${abs} ${unit} sooner` : `${abs} ${unit} longer`
 }
 
-export function useWhatIfAnalysis(baselineResult: Reach100kGoalResult | null) {
+export function useWhatIfAnalysis(
+  baselineResult: SavingsGoalResult | null,
+  options?: { enabled?: boolean },
+) {
+  const enabled = options?.enabled ?? true
   const baseContribution = baselineResult?.effectiveMonthlyContributions ?? 0
   const baseInvestmentRate = baselineResult?.investmentInterestRate ?? 0
 
   const [contributionDelta, setContributionDelta] = useState(0)
   const [investmentRate, setInvestmentRate] = useState(baseInvestmentRate)
-  const [scenarioResult, setScenarioResult] = useState<Reach100kGoalResult | null>(null)
+  const [scenarioResult, setScenarioResult] = useState<SavingsGoalResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -57,7 +61,7 @@ export function useWhatIfAnalysis(baselineResult: Reach100kGoalResult | null) {
     contributionDelta !== 0 || investmentRate !== (baselineResult?.investmentInterestRate ?? 0)
 
   useEffect(() => {
-    if (!baselineResult || !hasChanges) {
+    if (!enabled || !baselineResult || !hasChanges) {
       setScenarioResult(null)
       setLoading(false)
       return
@@ -69,7 +73,7 @@ export function useWhatIfAnalysis(baselineResult: Reach100kGoalResult | null) {
       setError(null)
 
       try {
-        const result = await analyzeReachGoal(baselineResult.targetAmount, {
+        const result = await analyzeSavingsGoal(baselineResult.targetAmount, {
           monthlyContribution: baseContribution + contributionDelta,
           investmentInterestRate: investmentRate,
         })
@@ -92,7 +96,7 @@ export function useWhatIfAnalysis(baselineResult: Reach100kGoalResult | null) {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [baselineResult, hasChanges, baseContribution, contributionDelta, investmentRate])
+  }, [enabled, baselineResult, hasChanges, baseContribution, contributionDelta, investmentRate])
 
   const reset = useCallback(() => {
     setContributionDelta(0)

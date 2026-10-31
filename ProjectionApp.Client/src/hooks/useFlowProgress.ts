@@ -6,17 +6,17 @@ import {
   OPTIONAL_FLOW_STEPS,
   type FlowStepId,
 } from '../flow/flowSteps'
-import { useSavedProjections } from './useSavedProjections'
+import { useSavedGoalRuns } from './useSavedGoalRuns'
 
 export type FlowUnlocks = Record<FlowStepId, boolean>
 
 export function useFlowProgress() {
-  const { savedToServer, hasBalance, saving, profile } = useProfile()
+  const { savedToServer, hasBalance, saving, savePending, profile } = useProfile()
   const { result } = useGoal()
-  const { projections } = useSavedProjections()
+  const { savedRuns } = useSavedGoalRuns()
 
-  const financesComplete = savedToServer && hasBalance && !saving
-  const hasProjection = result !== null || projections.length > 0
+  const financesComplete = savedToServer && hasBalance && !saving && !savePending
+  const hasResults = result !== null || savedRuns.length > 0
   const canAccessSalary = profile.annualSalary !== null && profile.annualSalary > 0
 
   const unlocked = useMemo<FlowUnlocks>(
@@ -24,10 +24,10 @@ export function useFlowProgress() {
       home: true,
       finances: true,
       calculator: financesComplete,
-      results: hasProjection,
+      results: hasResults,
       salary: canAccessSalary,
     }),
-    [financesComplete, hasProjection, canAccessSalary],
+    [financesComplete, hasResults, canAccessSalary],
   )
 
   const nextPath = useMemo(() => {
@@ -35,33 +35,33 @@ export function useFlowProgress() {
       return '/finances'
     }
 
-    if (!hasProjection) {
+    if (!hasResults) {
       return '/calculator'
     }
 
-    return '/projections'
-  }, [financesComplete, hasProjection])
+    return '/results'
+  }, [financesComplete, hasResults])
 
   const nextLabel = useMemo(() => {
     if (!financesComplete) {
       return 'Enter your finances'
     }
 
-    if (!hasProjection) {
-      return 'Run a projection'
+    if (!hasResults) {
+      return 'Run a calculation'
     }
 
     return 'View your results'
-  }, [financesComplete, hasProjection])
+  }, [financesComplete, hasResults])
 
   function isStepComplete(stepId: FlowStepId): boolean {
     switch (stepId) {
       case 'finances':
         return financesComplete
       case 'calculator':
-        return hasProjection
+        return hasResults
       case 'results':
-        return hasProjection
+        return hasResults
       default:
         return false
     }
@@ -70,7 +70,7 @@ export function useFlowProgress() {
   return {
     unlocked,
     financesComplete,
-    hasProjection,
+    hasResults,
     nextPath,
     nextLabel,
     mainSteps: MAIN_FLOW_STEPS,

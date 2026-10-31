@@ -2,43 +2,66 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
-import { analyzeReachGoal } from '../api/goals'
+import { analyzeSavingsGoal } from '../api/goals'
 import { GOAL_TARGET_AMOUNT } from '../format/currency'
-import { saveProjectionResult } from '../storage/savedProjections'
-import type { Reach100kGoalResult } from '../types/goal'
+import { loadSavedGoalRuns, saveGoalRunResult } from '../storage/savedGoalRuns'
+import type { SavingsGoalResult } from '../types/goal'
+import { useProfile } from './ProfileContext'
 
 interface GoalContextValue {
   targetAmount: number
   setTargetAmount: (amount: number) => void
-  result: Reach100kGoalResult | null
+  result: SavingsGoalResult | null
   loading: boolean
   error: string | null
   lastAnalyzedVersion: number | null
-  analyze: (profileVersion: number, overrideTarget?: number) => Promise<boolean>
+  analyze: (overrideTarget?: number) => Promise<boolean>
 }
 
 const GoalContext = createContext<GoalContextValue | null>(null)
 
 export function GoalProvider({ children }: { children: ReactNode }) {
+  const { flushPendingSave } = useProfile()
   const [targetAmount, setTargetAmount] = useState(GOAL_TARGET_AMOUNT)
-  const [result, setResult] = useState<Reach100kGoalResult | null>(null)
+  const [result, setResult] = useState<SavingsGoalResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastAnalyzedVersion, setLastAnalyzedVersion] = useState<number | null>(null)
+  const hydratedRef = useRef(false)
+
+  useEffect(() => {
+    if (hydratedRef.current) {
+      return
+    }
+
+    hydratedRef.current = true
+    const latestRun = loadSavedGoalRuns()[0]
+    if (!latestRun) {
+      return
+    }
+
+    setResult((current) => current ?? latestRun.result)
+    setLastAnalyzedVersion((current) =>
+      current !== null ? current : (latestRun.profileVersion ?? null),
+    )
+  }, [])
 
   const analyze = useCallback(
-    async (profileVersion: number, overrideTarget?: number): Promise<boolean> => {
+    async (overrideTarget?: number): Promise<boolean> => {
       const resolvedTarget = overrideTarget ?? targetAmount
       setLoading(true)
       setError(null)
 
       try {
-        const analysis = await analyzeReachGoal(resolvedTarget)
+        const profileVersion = await flushPendingSave()
+        const analysis = await analyzeSavingsGoal(resolvedTarget)
         setResult(analysis)
-        saveProjectionResult(analysis)
+        saveGoalRunResult(analysis, profileVersion)
         setLastAnalyzedVersion(profileVersion)
         if (overrideTarget !== undefined) {
           setTargetAmount(overrideTarget)
@@ -51,7 +74,7 @@ export function GoalProvider({ children }: { children: ReactNode }) {
         setLoading(false)
       }
     },
-    [targetAmount],
+    [flushPendingSave, targetAmount],
   )
 
   const value: GoalContextValue = {

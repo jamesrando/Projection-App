@@ -10,7 +10,7 @@ export interface FlowStep {
 export const MAIN_FLOW_STEPS: FlowStep[] = [
   { id: 'finances', path: '/finances', label: 'Your finances', stepNumber: 1 },
   { id: 'calculator', path: '/calculator', label: 'Calculator', stepNumber: 2 },
-  { id: 'results', path: '/projections', label: 'Your results', stepNumber: 3 },
+  { id: 'results', path: '/results', label: 'Your results', stepNumber: 3 },
 ]
 
 export const OPTIONAL_FLOW_STEPS: FlowStep[] = [
@@ -30,7 +30,7 @@ export function pathToStepId(pathname: string): FlowStepId {
     return 'calculator'
   }
 
-  if (pathname.startsWith('/projections')) {
+  if (pathname.startsWith('/results') || pathname.startsWith('/projections')) {
     return 'results'
   }
 

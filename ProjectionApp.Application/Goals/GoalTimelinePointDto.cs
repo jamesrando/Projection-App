@@ -1,6 +1,6 @@
 namespace ProjectionApp.Application.Goals;
 
-public sealed record MonthlyProjectionPointDto(
+public sealed record GoalTimelinePointDto(
     int Month,
     decimal Investments,
     decimal Savings,

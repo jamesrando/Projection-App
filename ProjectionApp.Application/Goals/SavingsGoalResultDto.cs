@@ -1,6 +1,6 @@
 namespace ProjectionApp.Application.Goals;
 
-public sealed record Reach100kGoalResultDto(
+public sealed record SavingsGoalResultDto(
     decimal TargetAmount,
     decimal CurrentPosition,
     decimal RemainingAmount,
@@ -16,4 +16,4 @@ public sealed record Reach100kGoalResultDto(
     bool IsGoalMet,
     bool IsReachable,
     GoalBreakdownDto Breakdown,
-    IReadOnlyList<MonthlyProjectionPointDto>? MonthlySeries);
+    IReadOnlyList<GoalTimelinePointDto>? MonthlySeries);

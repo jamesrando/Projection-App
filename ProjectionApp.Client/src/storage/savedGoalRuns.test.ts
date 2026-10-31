@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  clearSavedProjections,
-  loadSavedProjections,
-  removeSavedProjection,
-  saveProjectionResult,
-} from './savedProjections'
-import type { Reach100kGoalResult } from '../types/goal'
+  clearSavedGoalRuns,
+  loadSavedGoalRuns,
+  removeSavedGoalRun,
+  saveGoalRunResult,
+} from './savedGoalRuns'
+import type { SavingsGoalResult } from '../types/goal'
 
-const sampleResult: Reach100kGoalResult = {
+const sampleResult: SavingsGoalResult = {
   targetAmount: 100_000,
   currentPosition: 75_000,
   remainingAmount: 25_000,
@@ -64,25 +64,46 @@ function createSessionStorageMock(): Storage {
   }
 }
 
-describe('savedProjections storage', () => {
+describe('savedGoalRuns storage', () => {
   beforeEach(() => {
     globalThis.sessionStorage = createSessionStorageMock()
-    clearSavedProjections()
+    clearSavedGoalRuns()
   })
 
-  it('persists and reloads saved projections', () => {
-    const saved = saveProjectionResult(sampleResult)
-    const loaded = loadSavedProjections()
+  it('persists and reloads saved goal runs', () => {
+    const saved = saveGoalRunResult(sampleResult, 1)
+    const loaded = loadSavedGoalRuns()
 
     expect(loaded).toHaveLength(1)
     expect(loaded[0]?.id).toBe(saved.id)
     expect(loaded[0]?.result.targetAmount).toBe(100_000)
+    expect(loaded[0]?.profileVersion).toBe(1)
   })
 
-  it('removes a saved projection by id', () => {
-    const saved = saveProjectionResult(sampleResult)
-    removeSavedProjection(saved.id)
+  it('removes a saved goal run by id', () => {
+    const saved = saveGoalRunResult(sampleResult, 1)
+    removeSavedGoalRun(saved.id)
 
-    expect(loadSavedProjections()).toHaveLength(0)
+    expect(loadSavedGoalRuns()).toHaveLength(0)
+  })
+
+  it('migrates legacy session storage key', () => {
+    sessionStorage.setItem(
+      'projection-app:saved-projections',
+      JSON.stringify([
+        {
+          id: 'legacy-id',
+          savedAt: '2026-01-01T00:00:00.000Z',
+          result: sampleResult,
+        },
+      ]),
+    )
+
+    const loaded = loadSavedGoalRuns()
+
+    expect(loaded).toHaveLength(1)
+    expect(loaded[0]?.id).toBe('legacy-id')
+    expect(sessionStorage.getItem('projection-app:saved-goal-runs')).not.toBeNull()
+    expect(sessionStorage.getItem('projection-app:saved-projections')).toBeNull()
   })
 })

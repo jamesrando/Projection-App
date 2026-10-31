@@ -7,7 +7,7 @@ namespace ProjectionApp.Tests.Application;
 public class GoalServiceTests
 {
     [Fact]
-    public async Task AnalyzeReach100kAsync_InfersMonthlyContributionsFromSalary()
+    public async Task AnalyzeSavingsGoalAsync_InfersMonthlyContributionsFromSalary()
     {
         var repository = new FakeUserProfileRepository(new UserProfile
         {
@@ -18,7 +18,7 @@ public class GoalServiceTests
 
         var service = new GoalService(repository);
 
-        var result = await service.AnalyzeReach100kAsync();
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
 
         Assert.Equal(100_000m, result.TargetAmount);
         Assert.Equal(75_000m, result.CurrentPosition);
@@ -35,7 +35,7 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task AnalyzeReach100kAsync_UsesExplicitContributionsOverSalaryInference()
+    public async Task AnalyzeSavingsGoalAsync_UsesExplicitContributionsOverSalaryInference()
     {
         var repository = new FakeUserProfileRepository(new UserProfile
         {
@@ -46,7 +46,7 @@ public class GoalServiceTests
 
         var service = new GoalService(repository);
 
-        var result = await service.AnalyzeReach100kAsync();
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
 
         Assert.Equal(500m, result.EffectiveMonthlyContributions);
         Assert.False(result.ContributionsInferredFromSalary);
@@ -54,7 +54,7 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task AnalyzeReach100kAsync_ReturnsGoalMetWhenAlreadyAtTarget()
+    public async Task AnalyzeSavingsGoalAsync_ReturnsGoalMetWhenAlreadyAtTarget()
     {
         var repository = new FakeUserProfileRepository(new UserProfile
         {
@@ -65,7 +65,7 @@ public class GoalServiceTests
 
         var service = new GoalService(repository);
 
-        var result = await service.AnalyzeReach100kAsync();
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
 
         Assert.True(result.IsGoalMet);
         Assert.Equal(0, result.EstimatedMonthsToGoal);
@@ -76,7 +76,7 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task AnalyzeReach100kAsync_ReturnsMonthlySeriesWithStartingPointAndGoalMonth()
+    public async Task AnalyzeSavingsGoalAsync_ReturnsMonthlySeriesWithStartingPointAndGoalMonth()
     {
         var repository = new FakeUserProfileRepository(new UserProfile
         {
@@ -87,7 +87,7 @@ public class GoalServiceTests
 
         var service = new GoalService(repository);
 
-        var result = await service.AnalyzeReach100kAsync();
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
 
         Assert.NotNull(result.MonthlySeries);
         Assert.Equal(23, result.MonthlySeries.Count);
@@ -99,7 +99,7 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task AnalyzeReach100kAsync_ReturnsSinglePointSeriesWhenGoalAlreadyMet()
+    public async Task AnalyzeSavingsGoalAsync_ReturnsSinglePointSeriesWhenGoalAlreadyMet()
     {
         var repository = new FakeUserProfileRepository(new UserProfile
         {
@@ -109,7 +109,7 @@ public class GoalServiceTests
 
         var service = new GoalService(repository);
 
-        var result = await service.AnalyzeReach100kAsync();
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
 
         Assert.NotNull(result.MonthlySeries);
         Assert.Single(result.MonthlySeries);
@@ -117,24 +117,30 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task AnalyzeReach100kAsync_ThrowsWhenProfileMissing()
+    public async Task AnalyzeSavingsGoalAsync_FailsWhenProfileMissing()
     {
         var service = new GoalService(new FakeUserProfileRepository(null));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AnalyzeReach100kAsync());
+        var result = await service.AnalyzeSavingsGoalAsync();
+
+        Assert.True(result.IsFailed);
+        Assert.Contains("Profile has not been saved yet.", result.Errors.Select(e => e.Message));
     }
 
     [Fact]
-    public async Task AnalyzeReach100kAsync_ThrowsWhenProfileIncomplete()
+    public async Task AnalyzeSavingsGoalAsync_FailsWhenProfileIncomplete()
     {
         var repository = new FakeUserProfileRepository(new UserProfile());
         var service = new GoalService(repository);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AnalyzeReach100kAsync());
+        var result = await service.AnalyzeSavingsGoalAsync();
+
+        Assert.True(result.IsFailed);
+        Assert.Contains("Profile is incomplete. Provide at least a balance.", result.Errors.Select(e => e.Message));
     }
 
     [Fact]
-    public async Task AnalyzeReach100kAsync_CompoundsEachBalanceAtItsOwnRate()
+    public async Task AnalyzeSavingsGoalAsync_CompoundsEachBalanceAtItsOwnRate()
     {
         var repository = new FakeUserProfileRepository(new UserProfile
         {
@@ -148,7 +154,7 @@ public class GoalServiceTests
 
         var service = new GoalService(repository);
 
-        var result = await service.AnalyzeReach100kAsync();
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
 
         Assert.Equal(111, result.EstimatedMonthsToGoal);
         Assert.Equal(9.25m, result.EstimatedYearsToGoal);
@@ -167,7 +173,7 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task AnalyzeReach100kAsync_AcceptsCustomTargetAmount()
+    public async Task AnalyzeSavingsGoalAsync_AcceptsCustomTargetAmount()
     {
         var repository = new FakeUserProfileRepository(new UserProfile
         {
@@ -177,7 +183,7 @@ public class GoalServiceTests
 
         var service = new GoalService(repository);
 
-        var result = await service.AnalyzeReach100kAsync(200_000m);
+        var result = (await service.AnalyzeSavingsGoalAsync(200_000m)).Value;
 
         Assert.Equal(200_000m, result.TargetAmount);
         Assert.Equal(50_000m, result.CurrentPosition);
@@ -187,7 +193,7 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task AnalyzeReach100kAsync_EstimatesTimelineFromMonthlyContributionsAlone()
+    public async Task AnalyzeSavingsGoalAsync_EstimatesTimelineFromMonthlyContributionsAlone()
     {
         var repository = new FakeUserProfileRepository(new UserProfile
         {
@@ -197,7 +203,7 @@ public class GoalServiceTests
 
         var service = new GoalService(repository);
 
-        var result = await service.AnalyzeReach100kAsync();
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
 
         Assert.Equal(1_000m, result.MonthlyInvestmentContributions);
         Assert.Equal(50, result.EstimatedMonthsToGoal);
@@ -208,7 +214,7 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task AnalyzeReach100kAsync_GrowsInvestmentsWhenOnlyTheInvestmentRateIsProvided()
+    public async Task AnalyzeSavingsGoalAsync_GrowsInvestmentsWhenOnlyTheInvestmentRateIsProvided()
     {
         var repository = new FakeUserProfileRepository(new UserProfile
         {
@@ -218,7 +224,7 @@ public class GoalServiceTests
 
         var service = new GoalService(repository);
 
-        var result = await service.AnalyzeReach100kAsync();
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
 
         Assert.Null(result.MonthlyCashFlow);
         Assert.Equal(167, result.EstimatedMonthsToGoal);
@@ -227,7 +233,7 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task AnalyzeReach100kAsync_ThrowsWhenTargetAmountInvalid()
+    public async Task AnalyzeSavingsGoalAsync_FailsWhenTargetAmountInvalid()
     {
         var repository = new FakeUserProfileRepository(new UserProfile
         {
@@ -236,12 +242,14 @@ public class GoalServiceTests
 
         var service = new GoalService(repository);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.AnalyzeReach100kAsync(0m));
+        var result = await service.AnalyzeSavingsGoalAsync(0m);
+
+        Assert.True(result.IsFailed);
+        Assert.Contains("Target amount must be greater than zero.", result.Errors.Select(e => e.Message));
     }
 
     [Fact]
-    public async Task AnalyzeReach100kAsync_HigherContributionOverride_ReachesGoalSooner()
+    public async Task AnalyzeSavingsGoalAsync_HigherContributionOverride_ReachesGoalSooner()
     {
         var profile = new UserProfile
         {
@@ -251,9 +259,9 @@ public class GoalServiceTests
         var repository = new FakeUserProfileRepository(profile);
         var service = new GoalService(repository);
 
-        var baseline = await service.AnalyzeReach100kAsync();
-        var scenario = await service.AnalyzeReach100kAsync(
-            overrides: new GoalScenarioOverrides(MonthlyContribution: 700m));
+        var baseline = (await service.AnalyzeSavingsGoalAsync()).Value;
+        var scenario = (await service.AnalyzeSavingsGoalAsync(
+            overrides: new GoalScenarioOverrides(MonthlyContribution: 700m))).Value;
 
         Assert.Equal(100, baseline.EstimatedMonthsToGoal);
         Assert.True(scenario.EstimatedMonthsToGoal < baseline.EstimatedMonthsToGoal);
@@ -263,7 +271,7 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task AnalyzeReach100kAsync_LowerInvestmentRateOverride_ExtendsTimeline()
+    public async Task AnalyzeSavingsGoalAsync_LowerInvestmentRateOverride_ExtendsTimeline()
     {
         var profile = new UserProfile
         {
@@ -274,9 +282,9 @@ public class GoalServiceTests
         var repository = new FakeUserProfileRepository(profile);
         var service = new GoalService(repository);
 
-        var baseline = await service.AnalyzeReach100kAsync();
-        var scenario = await service.AnalyzeReach100kAsync(
-            overrides: new GoalScenarioOverrides(InvestmentInterestRate: 5m));
+        var baseline = (await service.AnalyzeSavingsGoalAsync()).Value;
+        var scenario = (await service.AnalyzeSavingsGoalAsync(
+            overrides: new GoalScenarioOverrides(InvestmentInterestRate: 5m))).Value;
 
         Assert.True(scenario.EstimatedMonthsToGoal > baseline.EstimatedMonthsToGoal);
         Assert.Equal(5m, scenario.InvestmentInterestRate);
@@ -284,7 +292,7 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task AnalyzeReach100kAsync_OverrideDoesNotPersistProfile()
+    public async Task AnalyzeSavingsGoalAsync_OverrideDoesNotPersistProfile()
     {
         var profile = new UserProfile
         {
@@ -296,11 +304,11 @@ public class GoalServiceTests
         var repository = new FakeUserProfileRepository(profile);
         var service = new GoalService(repository);
 
-        await service.AnalyzeReach100kAsync(
+        Assert.True((await service.AnalyzeSavingsGoalAsync(
             overrides: new GoalScenarioOverrides(
                 MonthlyContribution: 900m,
                 InvestmentInterestRate: 4m,
-                SavingsInterestRate: 1m));
+                SavingsInterestRate: 1m))).IsSuccess);
 
         Assert.Equal(500m, profile.MonthlyInvestmentContributions);
         Assert.Equal(7m, profile.InvestmentInterestRate);

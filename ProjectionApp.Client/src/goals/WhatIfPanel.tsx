@@ -1,5 +1,5 @@
 import { formatCurrency } from '../format/currency'
-import type { Reach100kGoalResult } from '../types/goal'
+import type { SavingsGoalResult } from '../types/goal'
 import {
   CONTRIBUTION_DELTA_MAX,
   CONTRIBUTION_DELTA_MIN,
@@ -9,18 +9,19 @@ import {
 } from './useWhatIfAnalysis'
 
 interface WhatIfPanelProps {
-  baseline: Reach100kGoalResult
+  baseline: SavingsGoalResult
   contributionDelta: number
   setContributionDelta: (value: number) => void
   investmentRate: number
   setInvestmentRate: (value: number) => void
   baseContribution: number
   baseInvestmentRate: number
-  scenarioResult: Reach100kGoalResult | null
+  scenarioResult: SavingsGoalResult | null
   loading: boolean
   error: string | null
   hasChanges: boolean
   reset: () => void
+  disabled?: boolean
 }
 
 function formatContributionDelta(delta: number): string {
@@ -33,8 +34,8 @@ function formatContributionDelta(delta: number): string {
 }
 
 function formatDeltaTone(
-  baseline: Reach100kGoalResult,
-  scenario: Reach100kGoalResult | null,
+  baseline: SavingsGoalResult,
+  scenario: SavingsGoalResult | null,
 ): 'positive' | 'negative' | 'neutral' | null {
   if (!scenario) {
     return null
@@ -57,8 +58,8 @@ function formatDeltaTone(
 }
 
 function renderDeltaMessage(
-  baseline: Reach100kGoalResult,
-  scenario: Reach100kGoalResult | null,
+  baseline: SavingsGoalResult,
+  scenario: SavingsGoalResult | null,
 ): string | null {
   if (baseline.isGoalMet) {
     return 'Goal already reached — adjust assumptions to explore other scenarios.'
@@ -92,6 +93,7 @@ export function WhatIfPanel({
   error,
   hasChanges,
   reset,
+  disabled = false,
 }: WhatIfPanelProps) {
   const deltaMessage = renderDeltaMessage(baseline, scenarioResult)
   const deltaTone = formatDeltaTone(baseline, scenarioResult)
@@ -114,6 +116,13 @@ export function WhatIfPanel({
         )}
       </header>
 
+      {disabled && (
+        <p className="what-if-panel__disabled-hint">
+          Recalculate on the calculator step to explore what-if scenarios with your current
+          finances.
+        </p>
+      )}
+
       <div className="what-if-panel__sliders">
         <div className="what-if-slider">
           <div className="what-if-slider__label-row">
@@ -127,6 +136,7 @@ export function WhatIfPanel({
             max={CONTRIBUTION_DELTA_MAX}
             step={50}
             value={contributionDelta}
+            disabled={disabled}
             onChange={(event) => setContributionDelta(Number(event.target.value))}
             aria-valuetext={`${formatContributionDelta(contributionDelta)} per month on top of ${formatCurrency(baseContribution, true)}`}
           />
@@ -148,6 +158,7 @@ export function WhatIfPanel({
             max={INVESTMENT_RATE_MAX}
             step={0.5}
             value={investmentRate}
+            disabled={disabled}
             onChange={(event) => setInvestmentRate(Number(event.target.value))}
             aria-valuetext={`${investmentRate.toFixed(1)} percent annual return`}
           />
@@ -159,7 +170,7 @@ export function WhatIfPanel({
 
       {(loading || deltaMessage || error) && (
         <div className="what-if-panel__status" aria-live="polite">
-          {loading && <p className="what-if-panel__loading">Updating projection…</p>}
+          {loading && <p className="what-if-panel__loading">Updating scenario…</p>}
           {error && <p className="what-if-panel__error">{error}</p>}
           {!loading && !error && deltaMessage && hasChanges && (
             <p

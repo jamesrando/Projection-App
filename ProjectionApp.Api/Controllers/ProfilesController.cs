@@ -1,3 +1,4 @@
+using FluentResults.Extensions.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
 using ProjectionApp.Application.Profiles;
 
@@ -8,25 +9,12 @@ namespace ProjectionApp.Api.Controllers;
 public sealed class ProfilesController(IProfileService profileService) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<UserProfileDto>> Get(CancellationToken cancellationToken)
-    {
-        var profile = await profileService.GetAsync(cancellationToken);
-        return profile is null ? NotFound() : Ok(profile);
-    }
+    public Task<ActionResult> Get(CancellationToken cancellationToken) =>
+        profileService.GetAsync(cancellationToken).ToActionResult();
 
     [HttpPut]
-    public async Task<ActionResult<UserProfileDto>> Save(
+    public Task<ActionResult> Save(
         [FromBody] SaveUserProfileRequest request,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var profile = await profileService.SaveAsync(request, cancellationToken);
-            return Ok(profile);
-        }
-        catch (ArgumentOutOfRangeException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-    }
+        CancellationToken cancellationToken) =>
+        profileService.SaveAsync(request, cancellationToken).ToActionResult();
 }

@@ -12,7 +12,7 @@ export function AppShell() {
             </span>
             <span className="app-shell__brand-text">
               <span className="app-shell__title">Projection Calculator</span>
-              <span className="app-shell__tagline">Guided savings projection</span>
+              <span className="app-shell__tagline">Guided savings goal calculator</span>
             </span>
           </NavLink>
           <FlowStepper />

@@ -4,7 +4,7 @@ export interface GoalScenarioOverrides {
   savingsInterestRate?: number
 }
 
-export interface MonthlyProjectionPoint {
+export interface GoalTimelinePoint {
   month: number
   investments: number
   savings: number
@@ -28,7 +28,7 @@ export interface GoalBreakdown {
   totalInterestEarned: number | null
 }
 
-export interface Reach100kGoalResult {
+export interface SavingsGoalResult {
   targetAmount: number
   currentPosition: number
   remainingAmount: number
@@ -44,5 +44,5 @@ export interface Reach100kGoalResult {
   isGoalMet: boolean
   isReachable: boolean
   breakdown: GoalBreakdown
-  monthlySeries: MonthlyProjectionPoint[] | null
+  monthlySeries: GoalTimelinePoint[] | null
 }

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { StatCard } from '../components/StatCard'
 import { formatCurrency } from '../format/currency'
 import { formatPercent } from '../format/percent'
-import type { GoalBreakdown, Reach100kGoalResult } from '../types/goal'
+import type { GoalBreakdown, SavingsGoalResult } from '../types/goal'
 import { GoalTimelineChart } from './GoalTimelineChart'
 import { formatMonthsDelta } from './useWhatIfAnalysis'
 
@@ -19,7 +19,7 @@ function formatShare(value: number): string {
   return `${value.toFixed(1)}%`
 }
 
-function hasProjection(breakdown: GoalBreakdown): boolean {
+function hasSimulatedBreakdown(breakdown: GoalBreakdown): boolean {
   return breakdown.projectedInvestments !== null && breakdown.projectedCashSavings !== null
 }
 
@@ -181,14 +181,14 @@ function GoalPanel({
 }
 
 interface GoalResultsProps {
-  result: Reach100kGoalResult
-  compareBaseline?: Reach100kGoalResult | null
+  result: SavingsGoalResult
+  compareBaseline?: SavingsGoalResult | null
   afterHero?: ReactNode
 }
 
 export function GoalResults({ result, compareBaseline, afterHero }: GoalResultsProps) {
   const { breakdown } = result
-  const projectionAvailable = hasProjection(breakdown)
+  const simulatedBreakdownAvailable = hasSimulatedBreakdown(breakdown)
   const targetLabel = formatCurrency(result.targetAmount)
   const monthsDelta =
     compareBaseline && !compareBaseline.isGoalMet
@@ -199,7 +199,7 @@ export function GoalResults({ result, compareBaseline, afterHero }: GoalResultsP
       ? compareBaseline.monthlySeries
       : undefined
   const projectedTotal =
-    projectionAvailable &&
+    simulatedBreakdownAvailable &&
     breakdown.projectedInvestments !== null &&
     breakdown.projectedCashSavings !== null
       ? breakdown.projectedInvestments + breakdown.projectedCashSavings
@@ -351,7 +351,7 @@ export function GoalResults({ result, compareBaseline, afterHero }: GoalResultsP
           </div>
         </GoalPanel>
 
-        {projectionAvailable && (
+        {simulatedBreakdownAvailable && (
           <>
             <GoalPanel
               title="At goal"

@@ -11,7 +11,7 @@ public class ProfileServiceTests
         var repository = new FakeUserProfileRepository();
         var service = new ProfileService(repository);
 
-        var saved = await service.SaveAsync(new SaveUserProfileRequest(
+        var savedResult = await service.SaveAsync(new SaveUserProfileRequest(
             100_000m,
             50_000m,
             25_000m,
@@ -19,6 +19,8 @@ public class ProfileServiceTests
             4.25m,
             500m));
 
+        Assert.True(savedResult.IsSuccess);
+        var saved = savedResult.Value;
         Assert.Equal(100_000m, saved.AnnualSalary);
         Assert.Equal(50_000m, saved.CurrentInvestments);
         Assert.Equal(25_000m, saved.CurrentCashSavings);
@@ -28,8 +30,9 @@ public class ProfileServiceTests
         Assert.Equal(100_000m / 12m, saved.MonthlyCashFlow);
         Assert.Equal(75_000m, saved.TotalPosition);
 
-        var loaded = await service.GetAsync();
-        Assert.NotNull(loaded);
+        var loadedResult = await service.GetAsync();
+        Assert.True(loadedResult.IsSuccess);
+        var loaded = loadedResult.Value;
         Assert.Equal(saved.Id, loaded.Id);
         Assert.Equal(75_000m, loaded.TotalPosition);
         Assert.Equal(7.5m, loaded.InvestmentInterestRate);
@@ -41,17 +44,17 @@ public class ProfileServiceTests
     {
         var service = new ProfileService(new FakeUserProfileRepository());
 
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
-            service.SaveAsync(new SaveUserProfileRequest(-1m, null, null)));
+        var negativeSalary = await service.SaveAsync(new SaveUserProfileRequest(-1m, null, null));
+        Assert.True(negativeSalary.IsFailed);
 
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
-            service.SaveAsync(new SaveUserProfileRequest(null, null, null, 101m)));
+        var invalidInvestmentRate = await service.SaveAsync(new SaveUserProfileRequest(null, null, null, 101m));
+        Assert.True(invalidInvestmentRate.IsFailed);
 
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
-            service.SaveAsync(new SaveUserProfileRequest(null, null, null, null, -1m)));
+        var negativeSavingsRate = await service.SaveAsync(new SaveUserProfileRequest(null, null, null, null, -1m));
+        Assert.True(negativeSavingsRate.IsFailed);
 
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
-            service.SaveAsync(new SaveUserProfileRequest(null, null, null, null, null, -1m)));
+        var negativeContributions = await service.SaveAsync(new SaveUserProfileRequest(null, null, null, null, null, -1m));
+        Assert.True(negativeContributions.IsFailed);
     }
 
     private sealed class FakeUserProfileRepository : IUserProfileRepository

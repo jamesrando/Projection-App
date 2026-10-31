@@ -12,7 +12,9 @@ public class SalaryServiceTests
         var repository = new FakeUserProfileRepository(new UserProfile { AnnualSalary = 30_000m });
         var service = new SalaryService(repository);
 
-        var result = await service.CalculateTakeHomeAsync(new CalculateTakeHomeRequest(50_000m));
+        var outcome = await service.CalculateTakeHomeAsync(new CalculateTakeHomeRequest(50_000m));
+        Assert.True(outcome.IsSuccess);
+        var result = outcome.Value;
 
         Assert.Equal(50_000m, result.AnnualGrossSalary);
         Assert.Equal(39_519.60m, result.NetAnnual);
@@ -25,7 +27,9 @@ public class SalaryServiceTests
         var repository = new FakeUserProfileRepository(new UserProfile { AnnualSalary = 50_000m });
         var service = new SalaryService(repository);
 
-        var result = await service.CalculateTakeHomeAsync();
+        var outcome = await service.CalculateTakeHomeAsync();
+        Assert.True(outcome.IsSuccess);
+        var result = outcome.Value;
 
         Assert.Equal(50_000m, result.AnnualGrossSalary);
         Assert.Equal(39_519.60m, result.NetAnnual);
@@ -37,7 +41,9 @@ public class SalaryServiceTests
         var repository = new FakeUserProfileRepository(new UserProfile { AnnualSalary = 50_000m });
         var service = new SalaryService(repository);
 
-        var result = await service.CalculateTakeHomeAsync();
+        var outcome = await service.CalculateTakeHomeAsync();
+        Assert.True(outcome.IsSuccess);
+        var result = outcome.Value;
 
         Assert.Equal(19_759.80m, result.BudgetSplit.Needs.Annual);
         Assert.Equal(11_855.88m, result.BudgetSplit.Wants.Annual);
@@ -45,23 +51,31 @@ public class SalaryServiceTests
     }
 
     [Fact]
-    public async Task CalculateTakeHomeAsync_ThrowsWhenNoSalaryAvailable()
+    public async Task CalculateTakeHomeAsync_FailsWhenNoSalaryAvailable()
     {
         var repository = new FakeUserProfileRepository(null);
         var service = new SalaryService(repository);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.CalculateTakeHomeAsync());
+        var result = await service.CalculateTakeHomeAsync();
+
+        Assert.True(result.IsFailed);
+        Assert.Contains(
+            "Annual gross salary is required. Enter a salary or save one in your profile.",
+            result.Errors.Select(e => e.Message));
     }
 
     [Fact]
-    public async Task CalculateTakeHomeAsync_ThrowsWhenSalaryInvalid()
+    public async Task CalculateTakeHomeAsync_FailsWhenSalaryInvalid()
     {
         var repository = new FakeUserProfileRepository(new UserProfile { AnnualSalary = 50_000m });
         var service = new SalaryService(repository);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.CalculateTakeHomeAsync(new CalculateTakeHomeRequest(0m)));
+        var result = await service.CalculateTakeHomeAsync(new CalculateTakeHomeRequest(0m));
+
+        Assert.True(result.IsFailed);
+        Assert.Contains(
+            "Annual gross salary must be greater than zero.",
+            result.Errors.Select(e => e.Message));
     }
 
     private sealed class FakeUserProfileRepository(UserProfile? profile) : IUserProfileRepository

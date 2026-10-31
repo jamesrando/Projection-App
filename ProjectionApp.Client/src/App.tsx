@@ -6,7 +6,7 @@ import { GoalScreen } from './goals/GoalScreen'
 import { FlowGuard } from './components/FlowGuard'
 import { AppShell } from './layout/AppShell'
 import { UserProfileScreen } from './profile/UserProfileScreen'
-import { ProjectionsScreen } from './projections/ProjectionsScreen'
+import { ResultsScreen } from './results/ResultsScreen'
 import { TakeHomeScreen } from './salary/TakeHomeScreen'
 import './App.css'
 
@@ -28,13 +28,14 @@ function App() {
                 }
               />
               <Route
-                path="projections"
+                path="results"
                 element={
                   <FlowGuard step="results">
-                    <ProjectionsScreen />
+                    <ResultsScreen />
                   </FlowGuard>
                 }
               />
+              <Route path="projections" element={<Navigate to="/results" replace />} />
               <Route
                 path="salary"
                 element={

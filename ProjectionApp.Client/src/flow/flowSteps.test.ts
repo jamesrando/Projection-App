@@ -6,6 +6,7 @@ describe('flowSteps', () => {
     expect(pathToStepId('/')).toBe('home')
     expect(pathToStepId('/finances')).toBe('finances')
     expect(pathToStepId('/calculator')).toBe('calculator')
+    expect(pathToStepId('/results')).toBe('results')
     expect(pathToStepId('/projections')).toBe('results')
     expect(pathToStepId('/salary')).toBe('salary')
   })

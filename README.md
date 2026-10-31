@@ -48,12 +48,10 @@ The React app runs at `http://localhost:5173` and proxies API requests to the ba
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/health` | Health check |
-| GET | `/api/profiles` | Get saved user profile |
-| PUT | `/api/profiles` | Save user profile |
-| POST | `/api/goals/reach-100k` | Analyze goal timeline (optional `targetAmount` in body) |
+| GET | `/api/profile` | Get saved user profile |
+| PUT | `/api/profile` | Save user profile |
+| POST | `/api/goals/analyze` | Analyze savings goal timeline (optional `targetAmount` in body) |
 | POST | `/api/salary/take-home` | Calculate UK take-home pay and 50/30/20 budget split |
-| GET | `/api/projections` | List sample projection summaries (demo data) |
-| GET | `/api/projections/{id}` | Get a sample projection by id |
 
 OpenAPI is available in Development at `/openapi/v1.json`.
 
@@ -62,7 +60,7 @@ OpenAPI is available in Development at `/openapi/v1.json`.
 - **Goal calculator** — compound monthly growth on investments and cash savings toward a target
 - **Salary inference** — when monthly contributions are blank, estimates 20% of net income from salary
 - **Take-home pay** — UK 2025/26 income tax and National Insurance with 50/30/20 budget split
-- **Session history** — projection results saved in the browser tab via sessionStorage
+- **Session history** — goal run results saved in the browser tab via sessionStorage
 
 ## Branching
 

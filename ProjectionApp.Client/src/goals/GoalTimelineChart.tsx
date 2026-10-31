@@ -11,16 +11,16 @@ import {
   YAxis,
 } from 'recharts'
 import { formatCurrency } from '../format/currency'
-import type { MonthlyProjectionPoint } from '../types/goal'
+import type { GoalTimelinePoint } from '../types/goal'
 import { CHART_AREA_OPACITY, CHART_COLORS } from './chartColors'
 
 interface GoalTimelineChartProps {
-  monthlySeries: MonthlyProjectionPoint[]
+  monthlySeries: GoalTimelinePoint[]
   targetAmount: number
   currentPosition: number
   estimatedMonthsToGoal: number | null
   isReachable: boolean
-  baselineSeries?: MonthlyProjectionPoint[]
+  baselineSeries?: GoalTimelinePoint[]
 }
 
 interface ChartPoint {
@@ -52,9 +52,9 @@ function formatMonthAxis(month: number, maxMonth: number): string {
 }
 
 function buildChartData(
-  monthlySeries: MonthlyProjectionPoint[],
+  monthlySeries: GoalTimelinePoint[],
   currentPosition: number,
-  baselineSeries?: MonthlyProjectionPoint[],
+  baselineSeries?: GoalTimelinePoint[],
 ): ChartPoint[] {
   const baselineByMonth = new Map(
     baselineSeries?.map((point) => [point.month, point.totalPosition]) ?? [],

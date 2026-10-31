@@ -1,3 +1,5 @@
+using FluentResults;
+using ProjectionApp.Application.Common;
 using ProjectionApp.Application.Profiles;
 using ProjectionApp.Domain.Entities;
 
@@ -7,30 +9,35 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
 {
     public const decimal DefaultTargetAmount = 100_000m;
 
-    public async Task<Reach100kGoalResultDto> AnalyzeReach100kAsync(
+    public async Task<Result<SavingsGoalResultDto>> AnalyzeSavingsGoalAsync(
         decimal? targetAmount = null,
         GoalScenarioOverrides? overrides = null,
         CancellationToken cancellationToken = default)
     {
-        var profile = await repository.GetAsync(cancellationToken)
-            ?? throw new InvalidOperationException("Profile has not been saved yet.");
+        var profile = await repository.GetAsync(cancellationToken);
+        if (profile is null)
+        {
+            return Result.Fail<SavingsGoalResultDto>(
+                new ValidationError("Profile has not been saved yet."));
+        }
 
         if (!profile.HasAnyBalance)
         {
-            throw new InvalidOperationException(
-                "Profile is incomplete. Provide at least a balance.");
+            return Result.Fail<SavingsGoalResultDto>(
+                new ValidationError("Profile is incomplete. Provide at least a balance."));
         }
 
         var resolvedTarget = targetAmount ?? DefaultTargetAmount;
         if (resolvedTarget <= 0m)
         {
-            throw new InvalidOperationException("Target amount must be greater than zero.");
+            return Result.Fail<SavingsGoalResultDto>(
+                new ValidationError("Target amount must be greater than zero."));
         }
 
-        return Analyze(profile, resolvedTarget, overrides);
+        return Result.Ok(Analyze(profile, resolvedTarget, overrides));
     }
 
-    internal static Reach100kGoalResultDto Analyze(
+    internal static SavingsGoalResultDto Analyze(
         UserProfile profile,
         decimal targetAmount,
         GoalScenarioOverrides? overrides = null)
@@ -50,7 +57,7 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
         var investmentMonthlyRate = (investmentInterestRate ?? 0m) / 100m / 12m;
         var savingsMonthlyRate = (savingsInterestRate ?? 0m) / 100m / 12m;
 
-        var projection = isGoalMet
+        var simulation = isGoalMet
             ? null
             : SimulateToGoal(
                 currentInvestments,
@@ -62,9 +69,9 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
 
         var monthlySeries = isGoalMet
             ? [CreateMonthlyPoint(0, currentInvestments, currentCashSavings, 0m, 0m)]
-            : projection?.MonthlySeries;
+            : simulation?.MonthlySeries;
 
-        var estimatedMonths = isGoalMet ? 0 : projection?.MonthsToGoal;
+        var estimatedMonths = isGoalMet ? 0 : simulation?.MonthsToGoal;
         decimal? estimatedYears = estimatedMonths is null
             ? null
             : Math.Round(estimatedMonths.Value / 12m, 2, MidpointRounding.AwayFromZero);
@@ -78,7 +85,7 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             ? 0m
             : Math.Round(currentCashSavings / currentPosition * 100m, 1, MidpointRounding.AwayFromZero);
 
-        var goalReached = projection?.MonthsToGoal is not null;
+        var goalReached = simulation?.MonthsToGoal is not null;
 
         var breakdown = new GoalBreakdownDto(
             currentInvestments,
@@ -87,14 +94,14 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             savingsSharePercent,
             currentInvestments * investmentMonthlyRate + monthlyContribution,
             currentCashSavings * savingsMonthlyRate,
-            goalReached ? projection!.ProjectedInvestments : null,
-            goalReached ? projection!.ProjectedCashSavings : null,
-            goalReached ? projection!.TotalContributionsAdded : null,
-            goalReached ? projection!.InvestmentInterestEarned : null,
-            goalReached ? projection!.SavingsInterestEarned : null,
-            goalReached ? projection!.TotalInterestEarned : null);
+            goalReached ? simulation!.ProjectedInvestments : null,
+            goalReached ? simulation!.ProjectedCashSavings : null,
+            goalReached ? simulation!.TotalContributionsAdded : null,
+            goalReached ? simulation!.InvestmentInterestEarned : null,
+            goalReached ? simulation!.SavingsInterestEarned : null,
+            goalReached ? simulation!.TotalInterestEarned : null);
 
-        return new Reach100kGoalResultDto(
+        return new SavingsGoalResultDto(
             targetAmount,
             currentPosition,
             remainingAmount,
@@ -125,19 +132,19 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
         return GoalContributionCalculator.Resolve(profile);
     }
 
-    private sealed record ProjectionSnapshot(
+    private sealed record GoalSimulationSnapshot(
         int? MonthsToGoal,
         decimal ProjectedInvestments,
         decimal ProjectedCashSavings,
         decimal TotalContributionsAdded,
         decimal InvestmentInterestEarned,
         decimal SavingsInterestEarned,
-        IReadOnlyList<MonthlyProjectionPointDto> MonthlySeries)
+        IReadOnlyList<GoalTimelinePointDto> MonthlySeries)
     {
         public decimal TotalInterestEarned => InvestmentInterestEarned + SavingsInterestEarned;
     }
 
-    private static MonthlyProjectionPointDto CreateMonthlyPoint(
+    private static GoalTimelinePointDto CreateMonthlyPoint(
         int month,
         decimal investments,
         decimal savings,
@@ -151,7 +158,7 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             cumulativeContributions,
             cumulativeInterest);
 
-    private static ProjectionSnapshot? SimulateToGoal(
+    private static GoalSimulationSnapshot? SimulateToGoal(
         decimal investments,
         decimal savings,
         decimal monthlyContribution,
@@ -172,7 +179,7 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
         var totalContributionsAdded = 0m;
         var investmentInterestEarned = 0m;
         var savingsInterestEarned = 0m;
-        var monthlySeries = new List<MonthlyProjectionPointDto>
+        var monthlySeries = new List<GoalTimelinePointDto>
         {
             CreateMonthlyPoint(0, investments, savings, 0m, 0m),
         };
@@ -197,7 +204,7 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
 
             if (investments + savings >= targetAmount)
             {
-                return new ProjectionSnapshot(
+                return new GoalSimulationSnapshot(
                     month,
                     investments,
                     savings,
@@ -208,7 +215,7 @@ public sealed class GoalService(IUserProfileRepository repository) : IGoalServic
             }
         }
 
-        return new ProjectionSnapshot(
+        return new GoalSimulationSnapshot(
             null,
             investments,
             savings,

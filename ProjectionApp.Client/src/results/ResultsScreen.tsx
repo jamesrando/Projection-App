@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader'
+import { StaleAnalysisBanner } from '../components/StaleAnalysisBanner'
 import { useGoal } from '../context/GoalContext'
+import { useAnalysisFreshness } from '../hooks/useAnalysisFreshness'
 import { GoalResults } from '../goals/GoalResults'
 import { WhatIfPanel } from '../goals/WhatIfPanel'
 import { useWhatIfAnalysis } from '../goals/useWhatIfAnalysis'
 import { formatCurrency } from '../format/currency'
-import { useSavedProjections } from '../hooks/useSavedProjections'
-import type { SavedProjection } from '../types/savedProjection'
+import { useSavedGoalRuns } from '../hooks/useSavedGoalRuns'
+import type { SavedGoalRun } from '../types/savedGoalRun'
 
 function formatSavedAt(iso: string): string {
   return new Intl.DateTimeFormat('en-GB', {
@@ -19,8 +21,8 @@ function formatSavedAt(iso: string): string {
   }).format(new Date(iso))
 }
 
-function formatTimeline(projection: SavedProjection): string {
-  const { result } = projection
+function formatTimeline(run: SavedGoalRun): string {
+  const { result } = run
 
   if (result.isGoalMet) {
     return 'Goal already reached'
@@ -39,29 +41,29 @@ function formatTimeline(projection: SavedProjection): string {
   return 'Timeline unavailable'
 }
 
-function SavedProjectionCard({
-  projection,
+function SavedGoalRunCard({
+  run,
   onRemove,
 }: {
-  projection: SavedProjection
+  run: SavedGoalRun
   onRemove: (id: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
-  const { result } = projection
+  const { result } = run
 
   return (
-    <article className="saved-projection">
-      <header className="saved-projection__header">
+    <article className="saved-goal-run">
+      <header className="saved-goal-run__header">
         <div>
-          <h2 className="saved-projection__title">
+          <h2 className="saved-goal-run__title">
             {formatCurrency(result.targetAmount)} target
           </h2>
-          <p className="saved-projection__meta">{formatSavedAt(projection.savedAt)}</p>
+          <p className="saved-goal-run__meta">{formatSavedAt(run.savedAt)}</p>
         </div>
-        <div className="saved-projection__actions">
+        <div className="saved-goal-run__actions">
           <button
             type="button"
-            className="saved-projection__toggle"
+            className="saved-goal-run__toggle"
             aria-expanded={expanded}
             onClick={() => setExpanded((value) => !value)}
           >
@@ -69,39 +71,39 @@ function SavedProjectionCard({
           </button>
           <button
             type="button"
-            className="saved-projection__remove"
-            aria-label="Remove saved projection"
-            onClick={() => onRemove(projection.id)}
+            className="saved-goal-run__remove"
+            aria-label="Remove saved scenario"
+            onClick={() => onRemove(run.id)}
           >
             Remove
           </button>
         </div>
       </header>
 
-      <dl className="saved-projection__summary">
+      <dl className="saved-goal-run__summary">
         <div>
           <dt>Progress</dt>
-          <dd className="saved-projection__value saved-projection__value--accent">
+          <dd className="saved-goal-run__value saved-goal-run__value--accent">
             {result.progressPercent.toFixed(1)}%
           </dd>
         </div>
         <div>
           <dt>Current position</dt>
-          <dd className="saved-projection__value">{formatCurrency(result.currentPosition)}</dd>
+          <dd className="saved-goal-run__value">{formatCurrency(result.currentPosition)}</dd>
         </div>
         <div>
           <dt>Timeline</dt>
-          <dd className="saved-projection__value">{formatTimeline(projection)}</dd>
+          <dd className="saved-goal-run__value">{formatTimeline(run)}</dd>
         </div>
         <div>
           <dt>Gap remaining</dt>
-          <dd className="saved-projection__value">{formatCurrency(result.remainingAmount)}</dd>
+          <dd className="saved-goal-run__value">{formatCurrency(result.remainingAmount)}</dd>
         </div>
       </dl>
 
       {expanded && (
-        <div className="saved-projection__details">
-          <dl className="saved-projection__detail-grid">
+        <div className="saved-goal-run__details">
+          <dl className="saved-goal-run__detail-grid">
             <div>
               <dt>Monthly contributions</dt>
               <dd>{formatCurrency(result.effectiveMonthlyContributions, true)}</dd>
@@ -131,27 +133,37 @@ function SavedProjectionCard({
   )
 }
 
-export function ProjectionsScreen() {
+export function ResultsScreen() {
   const { result } = useGoal()
-  const { projections, remove, clear } = useSavedProjections()
-  const baselineResult = result ?? projections[0]?.result ?? null
-  const whatIf = useWhatIfAnalysis(baselineResult)
-  const previousProjections = projections.slice(1)
+  const { savedRuns, remove, clear } = useSavedGoalRuns()
+  const { isStale } = useAnalysisFreshness()
+  const baselineResult = result ?? savedRuns[0]?.result ?? null
+  const whatIf = useWhatIfAnalysis(baselineResult, { enabled: !isStale })
+  const previousRuns = savedRuns.slice(1)
+  const showingSessionFallback = result === null && savedRuns.length > 0
 
   return (
-    <div className="projections">
+    <div className="results">
       <PageHeader
         phase="Step 3 of 3"
         title="Your results"
-        subtitle="Review your projection breakdown and compare scenarios saved during this session."
+        subtitle="Review your goal breakdown and compare scenarios saved during this session."
         actions={
-          projections.length > 1 ? (
+          savedRuns.length > 1 ? (
             <button type="button" className="goal-card__action" onClick={clear}>
               Clear history
             </button>
           ) : undefined
         }
       />
+
+      {isStale && <StaleAnalysisBanner className="results__stale-banner" />}
+
+      {showingSessionFallback && !isStale && (
+        <p className="results__session-note" role="status">
+          Showing your latest saved calculation from this session.
+        </p>
+      )}
 
       {baselineResult && whatIf.displayResult && (
         <GoalResults
@@ -171,19 +183,20 @@ export function ProjectionsScreen() {
               error={whatIf.error}
               hasChanges={whatIf.hasChanges}
               reset={whatIf.reset}
+              disabled={isStale}
             />
           }
         />
       )}
 
-      {previousProjections.length > 0 && (
-        <section className="projections-history" aria-labelledby="history-title">
-          <h2 id="history-title" className="projections-history__title">
+      {previousRuns.length > 0 && (
+        <section className="results-history" aria-labelledby="history-title">
+          <h2 id="history-title" className="results-history__title">
             Previous scenarios
           </h2>
-          <div className="saved-projections-list">
-            {previousProjections.map((projection) => (
-              <SavedProjectionCard key={projection.id} projection={projection} onRemove={remove} />
+          <div className="saved-goal-runs-list">
+            {previousRuns.map((run) => (
+              <SavedGoalRunCard key={run.id} run={run} onRemove={remove} />
             ))}
           </div>
         </section>
@@ -194,7 +207,7 @@ export function ProjectionsScreen() {
           ← Edit finances
         </Link>
         <Link to="/calculator" className="profile__continue">
-          Run another projection
+          Run another calculation
         </Link>
       </footer>
     </div>

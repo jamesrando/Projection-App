@@ -1,6 +1,10 @@
+using FluentResults.Extensions.AspNetCore;
+using ProjectionApp.Api.Results;
 using ProjectionApp.Application;
-using ProjectionApp.Application.Projections;
 using ProjectionApp.Infrastructure;
+
+AspNetCoreResult.Setup(config =>
+    config.DefaultProfile = new ProjectionAppResultEndpointProfile());
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,19 +31,5 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapControllers();
-
-app.MapGet("/health", () => Results.Ok(new { status = "healthy" }))
-    .WithName("HealthCheck");
-
-app.MapGet("/api/projections", async (IProjectionService service, CancellationToken cancellationToken) =>
-    Results.Ok(await service.GetSummariesAsync(cancellationToken)))
-    .WithName("GetProjections");
-
-app.MapGet("/api/projections/{id:guid}", async (Guid id, IProjectionService service, CancellationToken cancellationToken) =>
-{
-    var projection = await service.GetSummaryByIdAsync(id, cancellationToken);
-    return projection is null ? Results.NotFound() : Results.Ok(projection);
-})
-.WithName("GetProjectionById");
 
 app.Run();

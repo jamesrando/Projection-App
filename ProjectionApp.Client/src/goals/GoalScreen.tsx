@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { StaleAnalysisBanner } from '../components/StaleAnalysisBanner'
 import { CurrencyField } from '../components/CurrencyField'
 import { PageHeader } from '../components/PageHeader'
 import { useGoal } from '../context/GoalContext'
 import { useProfile } from '../context/ProfileContext'
+import { useAnalysisFreshness } from '../hooks/useAnalysisFreshness'
 import { currencySymbol, formatCurrency } from '../format/currency'
 
 export function GoalScreen() {
   const navigate = useNavigate()
-  const { profileVersion, hasBalance, loading: profileLoading } = useProfile()
+  const { hasBalance, loading: profileLoading, saving, savePending } = useProfile()
   const { targetAmount, setTargetAmount, loading, error, analyze } = useGoal()
+  const { isStale, hasBaseline } = useAnalysisFreshness()
   const [targetError, setTargetError] = useState<string | null>(null)
   const [draftTarget, setDraftTarget] = useState<number | null>(targetAmount)
 
@@ -17,9 +20,12 @@ export function GoalScreen() {
     setDraftTarget(targetAmount)
   }, [targetAmount])
 
+  const profileBusy = saving || savePending
+
   const canCalculate =
     hasBalance &&
     !profileLoading &&
+    !profileBusy &&
     draftTarget !== null &&
     draftTarget > 0 &&
     !targetError
@@ -30,9 +36,9 @@ export function GoalScreen() {
     }
 
     setTargetAmount(draftTarget!)
-    const succeeded = await analyze(profileVersion, draftTarget!)
+    const succeeded = await analyze(draftTarget!)
     if (succeeded) {
-      navigate('/projections')
+      navigate('/results')
     }
   }
 
@@ -40,9 +46,11 @@ export function GoalScreen() {
     <div className="goal">
       <PageHeader
         phase="Step 2 of 3"
-        title="Projection calculator"
+        title="Savings goal calculator"
         subtitle="Set your target amount, then calculate to see how long it takes to get there."
       />
+
+      {hasBaseline && isStale && <StaleAnalysisBanner className="goal__stale-banner" />}
 
       <section className="goal-target-form" aria-label="Goal target">
         <CurrencyField
@@ -78,7 +86,7 @@ export function GoalScreen() {
           </div>
           <h2 className="goal-empty__title">Enter your finances first</h2>
           <p className="goal-empty__text">
-            Complete step 1 before running a projection.
+            Complete step 1 before running a calculation.
           </p>
           <Link to="/finances" className="hero__cta hero__cta--primary goal-empty__cta">
             Back to your finances
@@ -101,7 +109,7 @@ export function GoalScreen() {
 
       {hasBalance && loading && (
         <p className="app__status goal__loading" aria-live="polite">
-          Calculating your projection…
+          Calculating your timeline…
         </p>
       )}
 
@@ -120,6 +128,8 @@ export function GoalScreen() {
               <span className="spinner" aria-hidden="true" />
               Calculating…
             </>
+          ) : profileBusy ? (
+            'Saving finances…'
           ) : (
             'Calculate and view results'
           )}

@@ -1,16 +1,16 @@
-import type { GoalScenarioOverrides, Reach100kGoalResult } from '../types/goal'
+import type { GoalScenarioOverrides, SavingsGoalResult } from '../types/goal'
 import { apiFetch, parseApiError } from './client'
 
-export interface AnalyzeReachGoalRequest {
+export interface AnalyzeSavingsGoalRequest {
   targetAmount?: number
   overrides?: GoalScenarioOverrides
 }
 
-export async function analyzeReachGoal(
+export async function analyzeSavingsGoal(
   targetAmount?: number,
   overrides?: GoalScenarioOverrides,
-): Promise<Reach100kGoalResult> {
-  const body: AnalyzeReachGoalRequest = {}
+): Promise<SavingsGoalResult> {
+  const body: AnalyzeSavingsGoalRequest = {}
 
   if (targetAmount !== undefined) {
     body.targetAmount = targetAmount
@@ -22,7 +22,7 @@ export async function analyzeReachGoal(
 
   const hasBody = Object.keys(body).length > 0
 
-  const response = await apiFetch('/api/goals/reach-100k', {
+  const response = await apiFetch('/api/goals/analyze', {
     method: 'POST',
     headers: hasBody ? { 'Content-Type': 'application/json' } : undefined,
     body: hasBody ? JSON.stringify(body) : undefined,
@@ -32,5 +32,5 @@ export async function analyzeReachGoal(
     throw new Error(await parseApiError(response, 'Failed to analyze goal'))
   }
 
-  return response.json() as Promise<Reach100kGoalResult>
+  return response.json() as Promise<SavingsGoalResult>
 }

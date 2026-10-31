@@ -1,3 +1,4 @@
+using FluentResults.Extensions.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
 using ProjectionApp.Application.Goals;
 
@@ -7,22 +8,12 @@ namespace ProjectionApp.Api.Controllers;
 [Route("api/goals")]
 public sealed class GoalsController(IGoalService goalService) : ControllerBase
 {
-    [HttpPost("reach-100k")]
-    public async Task<ActionResult<Reach100kGoalResultDto>> AnalyzeReach100k(
-        [FromBody] AnalyzeReachGoalRequest? request,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var result = await goalService.AnalyzeReach100kAsync(
-                request?.TargetAmount,
-                request?.Overrides,
-                cancellationToken);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-    }
+    [HttpPost("analyze")]
+    public Task<ActionResult> AnalyzeSavingsGoal(
+        [FromBody] AnalyzeSavingsGoalRequest? request,
+        CancellationToken cancellationToken) =>
+        goalService.AnalyzeSavingsGoalAsync(
+            request?.TargetAmount,
+            request?.Overrides,
+            cancellationToken).ToActionResult();
 }
