@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { FlowStepper } from '@/features/flow/FlowStepper'
+import { ThemeToggle } from '@/shared/theme/ThemeToggle'
 
 export function AppShell() {
   return (
@@ -15,7 +16,10 @@ export function AppShell() {
               <span className="app-shell__tagline">Guided savings goal calculator</span>
             </span>
           </NavLink>
-          <FlowStepper />
+          <div className="app-shell__actions">
+            <FlowStepper />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
       <main className="app__main">

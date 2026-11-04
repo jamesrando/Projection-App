@@ -80,8 +80,6 @@
   color: #dc3545;
 }
 
-@media (prefers-color-scheme: dark) {
-  .profile-field__error {
-    color: #fca5a5;
-  }
+[data-theme='dark'] .profile-field__error {
+  color: #fca5a5;
 }

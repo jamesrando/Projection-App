@@ -53,9 +53,7 @@
   color: var(--text-muted);
 }
 
-@media (prefers-color-scheme: dark) {
-  .profile__phase {
-    color: #86efac;
-    background: #14532d;
-  }
+[data-theme='dark'] .profile__phase {
+  color: #86efac;
+  background: #14532d;
 }

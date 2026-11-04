@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CurrencyField } from '@/shared/ui/CurrencyField'
 import { InvestmentsSavingsSplit } from '@/shared/ui/InvestmentsSavingsSplit'
@@ -78,6 +78,32 @@ export function UserProfileScreen() {
   const meetsMinimum = hasMinimumFinancesInputs(profile)
   const profileSynced = savedToServer && !saving && !savePending
   const canContinue = profileSynced && meetsMinimum
+  const [showSavedConfirmation, setShowSavedConfirmation] = useState(false)
+  const wasSavingRef = useRef(false)
+
+  useEffect(() => {
+    const isSaving = saving || savePending
+
+    if (isSaving) {
+      wasSavingRef.current = true
+      setShowSavedConfirmation(false)
+      return
+    }
+
+    if (!wasSavingRef.current) {
+      return
+    }
+
+    wasSavingRef.current = false
+
+    if (!savedToServer || !meetsMinimum) {
+      return
+    }
+
+    setShowSavedConfirmation(true)
+    const timer = window.setTimeout(() => setShowSavedConfirmation(false), 2500)
+    return () => window.clearTimeout(timer)
+  }, [saving, savePending, savedToServer, meetsMinimum])
   const hasHoldingFieldErrors = Object.values(holdingFieldErrors).some(
     (rowErrors) => rowErrors && Object.keys(rowErrors).length > 0,
   )
@@ -309,7 +335,7 @@ export function UserProfileScreen() {
               aria-atomic="true"
             >
               {(saving || savePending) && <p className="profile__save-status">Saving…</p>}
-              {!saving && !savePending && savedToServer && meetsMinimum && (
+              {!saving && !savePending && showSavedConfirmation && (
                 <p className="profile__save-status profile__save-status--saved">Profile saved</p>
               )}
               {!saving && !savePending && savedToServer && !meetsMinimum && (
