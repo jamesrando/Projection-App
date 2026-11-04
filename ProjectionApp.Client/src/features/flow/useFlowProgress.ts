@@ -31,16 +31,12 @@ export function useFlowProgress() {
   )
 
   const nextPath = useMemo(() => {
-    if (!financesComplete) {
+    if (!hasResults) {
       return '/finances'
     }
 
-    if (!hasResults) {
-      return '/calculator'
-    }
-
     return '/results'
-  }, [financesComplete, hasResults])
+  }, [hasResults])
 
   const nextLabel = useMemo(() => {
     if (!financesComplete) {

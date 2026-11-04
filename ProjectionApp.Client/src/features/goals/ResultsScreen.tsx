@@ -82,7 +82,7 @@ export function ResultsScreen() {
         <Link to="/finances" className="flow-footer__back">
           ← Edit finances
         </Link>
-        <Link to="/calculator" className="profile__continue">
+        <Link to="/finances" className="profile__continue">
           Run another calculation
         </Link>
       </footer>

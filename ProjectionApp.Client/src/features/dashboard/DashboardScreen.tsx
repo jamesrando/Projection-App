@@ -45,7 +45,7 @@ export function DashboardScreen() {
               <Link to="/results" className="hero__cta hero__cta--primary">
                 View your results
               </Link>
-              <Link to="/calculator" className="hero__cta hero__cta--secondary">
+              <Link to="/finances" className="hero__cta hero__cta--secondary">
                 Run another calculation
               </Link>
             </>
