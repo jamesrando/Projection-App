@@ -1,0 +1,201 @@
+using FluentResults;
+using ProjectionApp.Application.Common;
+using ProjectionApp.Application.Profiles;
+using ProjectionApp.Domain.Entities;
+using ProjectionApp.Domain.Goals;
+using ProjectionApp.Domain.Profiles;
+
+namespace ProjectionApp.Application.Goals;
+
+public sealed class GoalService(IUserProfileRepository repository) : IGoalService
+{
+    public const decimal DefaultTargetAmount = 100_000m;
+
+    public async Task<Result<SavingsGoalResultDto>> AnalyzeSavingsGoalAsync(
+        decimal? targetAmount = null,
+        GoalScenarioOverrides? overrides = null,
+        CancellationToken cancellationToken = default)
+    {
+        var profile = await repository.GetAsync(cancellationToken);
+        if (profile is null)
+        {
+            return Result.Fail<SavingsGoalResultDto>(
+                new ValidationError("Profile has not been saved yet."));
+        }
+
+        if (!profile.HasMinimumGoalInputs)
+        {
+            return Result.Fail<SavingsGoalResultDto>(
+                new ValidationError(UserProfileValidation.IncompleteForGoalsMessage));
+        }
+
+        var resolvedTarget = targetAmount ?? DefaultTargetAmount;
+        if (resolvedTarget <= 0m)
+        {
+            return Result.Fail<SavingsGoalResultDto>(
+                new ValidationError("Target amount must be greater than zero."));
+        }
+
+        return Result.Ok(Analyze(profile, resolvedTarget, overrides));
+    }
+
+    internal static SavingsGoalResultDto Analyze(
+        UserProfile profile,
+        decimal targetAmount,
+        GoalScenarioOverrides? overrides = null)
+    {
+        var currentInvestments = profile.CurrentInvestments ?? 0m;
+        var currentCashSavings = profile.CurrentCashSavings ?? 0m;
+        var currentPosition = currentInvestments + currentCashSavings;
+        var remainingAmount = Math.Max(0m, targetAmount - currentPosition);
+        var progressPercent = currentPosition <= 0m
+            ? 0m
+            : Math.Min(100m, currentPosition / targetAmount * 100m);
+        var isGoalMet = currentPosition >= targetAmount;
+        var (monthlyContribution, contributionsInferredFromSalary) = ResolveContribution(profile, overrides);
+        var investmentInterestRate = overrides?.InvestmentInterestRate ?? profile.InvestmentInterestRate;
+        var savingsInterestRate = overrides?.SavingsInterestRate ?? profile.SavingsInterestRate;
+        var investmentMonthlyRate = (investmentInterestRate ?? 0m) / 100m / 12m;
+        var savingsMonthlyRate = (savingsInterestRate ?? 0m) / 100m / 12m;
+
+        var simulation = isGoalMet
+            ? null
+            : SavingsGoalSimulator.SimulateToGoal(
+                currentInvestments,
+                currentCashSavings,
+                monthlyContribution,
+                investmentMonthlyRate,
+                savingsMonthlyRate,
+                targetAmount);
+
+        var monthlySeries = isGoalMet
+            ? new List<GoalTimelinePointDto>
+            {
+                new(0, currentInvestments, currentCashSavings, currentPosition, 0m, 0m),
+            }
+            : simulation?.MonthlySeries.ToDto();
+
+        var estimatedMonths = isGoalMet ? 0 : simulation?.MonthsToGoal;
+        decimal? estimatedYears = estimatedMonths is null
+            ? null
+            : Math.Round(estimatedMonths.Value / 12m, 2, MidpointRounding.AwayFromZero);
+
+        var isReachable = isGoalMet || estimatedMonths is not null;
+
+        var investmentsSharePercent = currentPosition <= 0m
+            ? 0m
+            : Math.Round(currentInvestments / currentPosition * 100m, 1, MidpointRounding.AwayFromZero);
+        var savingsSharePercent = currentPosition <= 0m
+            ? 0m
+            : Math.Round(currentCashSavings / currentPosition * 100m, 1, MidpointRounding.AwayFromZero);
+
+        var goalReached = simulation?.MonthsToGoal is not null;
+        var projectionMonths = isGoalMet ? 0 : simulation?.MonthsToGoal ?? 0;
+        var holdingProjections = BuildHoldingProjections(
+            profile,
+            projectionMonths,
+            investmentInterestRate,
+            monthlyContribution,
+            isGoalMet || goalReached);
+
+        var breakdown = new GoalBreakdownDto(
+            currentInvestments,
+            currentCashSavings,
+            investmentsSharePercent,
+            savingsSharePercent,
+            currentInvestments * investmentMonthlyRate + monthlyContribution,
+            currentCashSavings * savingsMonthlyRate,
+            goalReached ? simulation!.ProjectedInvestments : null,
+            goalReached ? simulation!.ProjectedCashSavings : null,
+            goalReached ? simulation!.TotalContributionsAdded : null,
+            goalReached ? simulation!.InvestmentInterestEarned : null,
+            goalReached ? simulation!.SavingsInterestEarned : null,
+            goalReached ? simulation!.TotalInterestEarned : null,
+            holdingProjections);
+
+        return new SavingsGoalResultDto(
+            targetAmount,
+            currentPosition,
+            remainingAmount,
+            progressPercent,
+            estimatedMonths,
+            estimatedYears,
+            investmentInterestRate,
+            savingsInterestRate,
+            profile.MonthlyInvestmentContributions,
+            monthlyContribution,
+            contributionsInferredFromSalary,
+            isGoalMet,
+            isReachable,
+            breakdown,
+            monthlySeries);
+    }
+
+    private static (decimal EffectiveMonthlyContribution, bool InferredFromSalary) ResolveContribution(
+        UserProfile profile,
+        GoalScenarioOverrides? overrides)
+    {
+        if (overrides?.MonthlyContribution is decimal overrideContribution)
+        {
+            return (overrideContribution, false);
+        }
+
+        return GoalContributionResolver.Resolve(profile);
+    }
+
+    private static IReadOnlyList<InvestmentHoldingProjectionDto>? BuildHoldingProjections(
+        UserProfile profile,
+        int months,
+        decimal? investmentInterestRate,
+        decimal effectiveMonthlyContribution,
+        bool includeProjections)
+    {
+        var holdings = profile.InvestmentHoldings;
+        if (!includeProjections || holdings is not { Count: > 1 })
+        {
+            return null;
+        }
+
+        var rollup = InvestmentHoldingsRollup.Rollup(holdings);
+        var rateScale = 1m;
+        if (investmentInterestRate is decimal overrideRate &&
+            rollup.WeightedAnnualReturnRate is decimal weightedRate &&
+            weightedRate > 0m)
+        {
+            rateScale = overrideRate / weightedRate;
+        }
+
+        var projections = InvestmentHoldingsProjector.ProjectToMonth(
+            holdings,
+            months,
+            rateScale,
+            effectiveMonthlyContribution);
+
+        var projectedInvestmentsTotal = projections.Sum(projection => projection.ProjectedBalance);
+        if (projectedInvestmentsTotal <= 0m)
+        {
+            return projections
+                .Select(projection => new InvestmentHoldingProjectionDto(
+                    projection.Id,
+                    projection.Category,
+                    projection.CustomLabel,
+                    projection.CurrentBalance,
+                    projection.ProjectedBalance,
+                    0m))
+                .ToList();
+        }
+
+        return projections
+            .Select(projection => new InvestmentHoldingProjectionDto(
+                projection.Id,
+                projection.Category,
+                projection.CustomLabel,
+                projection.CurrentBalance,
+                projection.ProjectedBalance,
+                Math.Round(
+                    projection.ProjectedBalance / projectedInvestmentsTotal * 100m,
+                    1,
+                    MidpointRounding.AwayFromZero)))
+            .ToList();
+    }
+}

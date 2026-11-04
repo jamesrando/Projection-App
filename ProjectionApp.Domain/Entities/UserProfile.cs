@@ -1,0 +1,32 @@
+using ProjectionApp.Domain.Profiles;
+
+namespace ProjectionApp.Domain.Entities;
+
+public sealed class UserProfile
+{
+    public Guid Id { get; init; } = Guid.NewGuid();
+
+    public decimal? AnnualSalary { get; init; }
+
+    public decimal? CurrentInvestments { get; init; }
+
+    public decimal? CurrentCashSavings { get; init; }
+
+    public decimal? InvestmentInterestRate { get; init; }
+
+    public decimal? SavingsInterestRate { get; init; }
+
+    public decimal? MonthlyInvestmentContributions { get; init; }
+
+    public IReadOnlyList<InvestmentHolding>? InvestmentHoldings { get; init; }
+
+    public bool UseInvestmentBreakdown { get; init; }
+
+    public decimal TotalPosition => (CurrentInvestments ?? 0m) + (CurrentCashSavings ?? 0m);
+
+    public bool HasMinimumGoalInputs =>
+        UserProfileValidation.HasMinimumGoalInputs(
+            AnnualSalary,
+            CurrentInvestments,
+            CurrentCashSavings);
+}

@@ -1,0 +1,368 @@
+using ProjectionApp.Application.Goals;
+using ProjectionApp.Application.Profiles;
+using ProjectionApp.Domain.Entities;
+
+namespace ProjectionApp.Tests.Application;
+
+public class GoalServiceTests
+{
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_InfersMonthlyContributionsFromSalary()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            AnnualSalary = 100_000m,
+            CurrentInvestments = 50_000m,
+            CurrentCashSavings = 25_000m,
+        });
+
+        var service = new GoalService(repository);
+
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
+
+        Assert.Equal(100_000m, result.TargetAmount);
+        Assert.Equal(75_000m, result.CurrentPosition);
+        Assert.Equal(25_000m, result.RemainingAmount);
+        Assert.Equal(75m, result.ProgressPercent);
+        Assert.Null(result.MonthlyInvestmentContributions);
+        Assert.True(result.ContributionsInferredFromSalary);
+        Assert.Equal(1_142.62m, result.EffectiveMonthlyContributions);
+        Assert.Equal(22, result.EstimatedMonthsToGoal);
+        Assert.Equal(1.83m, result.EstimatedYearsToGoal);
+        Assert.False(result.IsGoalMet);
+        Assert.True(result.IsReachable);
+    }
+
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_UsesExplicitContributionsOverSalaryInference()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            AnnualSalary = 100_000m,
+            CurrentInvestments = 50_000m,
+            MonthlyInvestmentContributions = 500m,
+        });
+
+        var service = new GoalService(repository);
+
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
+
+        Assert.Equal(500m, result.EffectiveMonthlyContributions);
+        Assert.False(result.ContributionsInferredFromSalary);
+        Assert.Equal(100, result.EstimatedMonthsToGoal);
+    }
+
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_ReturnsGoalMetWhenAlreadyAtTarget()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            AnnualSalary = 120_000m,
+            CurrentInvestments = 80_000m,
+            CurrentCashSavings = 30_000m,
+        });
+
+        var service = new GoalService(repository);
+
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
+
+        Assert.True(result.IsGoalMet);
+        Assert.Equal(0, result.EstimatedMonthsToGoal);
+        Assert.Equal(0m, result.EstimatedYearsToGoal);
+        Assert.Equal(0m, result.RemainingAmount);
+        Assert.Equal(100m, result.ProgressPercent);
+        Assert.True(result.IsReachable);
+    }
+
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_ReturnsMonthlySeriesWithStartingPointAndGoalMonth()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            AnnualSalary = 100_000m,
+            CurrentInvestments = 50_000m,
+            CurrentCashSavings = 25_000m,
+        });
+
+        var service = new GoalService(repository);
+
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
+
+        Assert.NotNull(result.MonthlySeries);
+        Assert.Equal(23, result.MonthlySeries.Count);
+        Assert.Equal(0, result.MonthlySeries[0].Month);
+        Assert.Equal(75_000m, result.MonthlySeries[0].TotalPosition);
+        Assert.Equal(0m, result.MonthlySeries[0].CumulativeContributions);
+        Assert.Equal(22, result.MonthlySeries[^1].Month);
+        Assert.True(result.MonthlySeries[^1].TotalPosition >= result.TargetAmount);
+    }
+
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_ReturnsSinglePointSeriesWhenGoalAlreadyMet()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            CurrentInvestments = 80_000m,
+            CurrentCashSavings = 30_000m,
+        });
+
+        var service = new GoalService(repository);
+
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
+
+        Assert.NotNull(result.MonthlySeries);
+        Assert.Single(result.MonthlySeries);
+        Assert.Equal(110_000m, result.MonthlySeries[0].TotalPosition);
+    }
+
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_FailsWhenProfileMissing()
+    {
+        var service = new GoalService(new FakeUserProfileRepository(null));
+
+        var result = await service.AnalyzeSavingsGoalAsync();
+
+        Assert.True(result.IsFailed);
+        Assert.Contains("Profile has not been saved yet.", result.Errors.Select(e => e.Message));
+    }
+
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_FailsWhenProfileIncomplete()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile());
+        var service = new GoalService(repository);
+
+        var result = await service.AnalyzeSavingsGoalAsync();
+
+        Assert.True(result.IsFailed);
+        Assert.Contains(
+            ProjectionApp.Domain.Profiles.UserProfileValidation.IncompleteForGoalsMessage,
+            result.Errors.Select(e => e.Message));
+    }
+
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_CompoundsEachBalanceAtItsOwnRate()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            AnnualSalary = 12_000m,
+            CurrentInvestments = 40_000m,
+            CurrentCashSavings = 20_000m,
+            InvestmentInterestRate = 7m,
+            SavingsInterestRate = 2m,
+            MonthlyInvestmentContributions = 0m,
+        });
+
+        var service = new GoalService(repository);
+
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
+
+        Assert.Equal(111, result.EstimatedMonthsToGoal);
+        Assert.Equal(9.25m, result.EstimatedYearsToGoal);
+        Assert.Equal(7m, result.InvestmentInterestRate);
+        Assert.Equal(2m, result.SavingsInterestRate);
+        Assert.False(result.IsGoalMet);
+        Assert.Equal(40_000m, result.Breakdown.CurrentInvestments);
+        Assert.Equal(20_000m, result.Breakdown.CurrentCashSavings);
+        Assert.Equal(66.7m, result.Breakdown.InvestmentsSharePercent);
+        Assert.Equal(33.3m, result.Breakdown.SavingsSharePercent);
+        Assert.NotNull(result.Breakdown.ProjectedInvestments);
+        Assert.NotNull(result.Breakdown.TotalContributionsAdded);
+        Assert.Equal(0m, result.Breakdown.TotalContributionsAdded);
+        Assert.True(result.Breakdown.TotalInterestEarned > 0m);
+        Assert.True(result.IsReachable);
+    }
+
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_AcceptsCustomTargetAmount()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            CurrentInvestments = 50_000m,
+            MonthlyInvestmentContributions = 1_000m,
+        });
+
+        var service = new GoalService(repository);
+
+        var result = (await service.AnalyzeSavingsGoalAsync(200_000m)).Value;
+
+        Assert.Equal(200_000m, result.TargetAmount);
+        Assert.Equal(50_000m, result.CurrentPosition);
+        Assert.Equal(25m, result.ProgressPercent);
+        Assert.Equal(150, result.EstimatedMonthsToGoal);
+        Assert.True(result.IsReachable);
+    }
+
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_EstimatesTimelineFromMonthlyContributionsAlone()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            CurrentInvestments = 50_000m,
+            MonthlyInvestmentContributions = 1_000m,
+        });
+
+        var service = new GoalService(repository);
+
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
+
+        Assert.Equal(1_000m, result.MonthlyInvestmentContributions);
+        Assert.Equal(50, result.EstimatedMonthsToGoal);
+        Assert.Equal(4.17m, result.EstimatedYearsToGoal);
+        Assert.Equal(50_000m, result.Breakdown.TotalContributionsAdded);
+        Assert.Equal(0m, result.Breakdown.TotalInterestEarned);
+        Assert.True(result.IsReachable);
+    }
+
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_GrowsInvestmentsWhenOnlyTheInvestmentRateIsProvided()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            CurrentInvestments = 50_000m,
+            InvestmentInterestRate = 5m,
+        });
+
+        var service = new GoalService(repository);
+
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
+
+        Assert.Equal(167, result.EstimatedMonthsToGoal);
+        Assert.Equal(13.92m, result.EstimatedYearsToGoal);
+        Assert.True(result.IsReachable);
+    }
+
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_FailsWhenTargetAmountInvalid()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            CurrentInvestments = 50_000m,
+        });
+
+        var service = new GoalService(repository);
+
+        var result = await service.AnalyzeSavingsGoalAsync(0m);
+
+        Assert.True(result.IsFailed);
+        Assert.Contains("Target amount must be greater than zero.", result.Errors.Select(e => e.Message));
+    }
+
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_HigherContributionOverride_ReachesGoalSooner()
+    {
+        var profile = new UserProfile
+        {
+            CurrentInvestments = 50_000m,
+            MonthlyInvestmentContributions = 500m,
+        };
+        var repository = new FakeUserProfileRepository(profile);
+        var service = new GoalService(repository);
+
+        var baseline = (await service.AnalyzeSavingsGoalAsync()).Value;
+        var scenario = (await service.AnalyzeSavingsGoalAsync(
+            overrides: new GoalScenarioOverrides(MonthlyContribution: 700m))).Value;
+
+        Assert.Equal(100, baseline.EstimatedMonthsToGoal);
+        Assert.True(scenario.EstimatedMonthsToGoal < baseline.EstimatedMonthsToGoal);
+        Assert.Equal(700m, scenario.EffectiveMonthlyContributions);
+        Assert.False(scenario.ContributionsInferredFromSalary);
+        Assert.Equal(500m, profile.MonthlyInvestmentContributions);
+    }
+
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_LowerInvestmentRateOverride_ExtendsTimeline()
+    {
+        var profile = new UserProfile
+        {
+            CurrentInvestments = 50_000m,
+            InvestmentInterestRate = 7m,
+            MonthlyInvestmentContributions = 500m,
+        };
+        var repository = new FakeUserProfileRepository(profile);
+        var service = new GoalService(repository);
+
+        var baseline = (await service.AnalyzeSavingsGoalAsync()).Value;
+        var scenario = (await service.AnalyzeSavingsGoalAsync(
+            overrides: new GoalScenarioOverrides(InvestmentInterestRate: 5m))).Value;
+
+        Assert.True(scenario.EstimatedMonthsToGoal > baseline.EstimatedMonthsToGoal);
+        Assert.Equal(5m, scenario.InvestmentInterestRate);
+        Assert.Equal(7m, profile.InvestmentInterestRate);
+    }
+
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_OverrideDoesNotPersistProfile()
+    {
+        var profile = new UserProfile
+        {
+            CurrentInvestments = 50_000m,
+            InvestmentInterestRate = 7m,
+            SavingsInterestRate = 2m,
+            MonthlyInvestmentContributions = 500m,
+        };
+        var repository = new FakeUserProfileRepository(profile);
+        var service = new GoalService(repository);
+
+        Assert.True((await service.AnalyzeSavingsGoalAsync(
+            overrides: new GoalScenarioOverrides(
+                MonthlyContribution: 900m,
+                InvestmentInterestRate: 4m,
+                SavingsInterestRate: 1m))).IsSuccess);
+
+        Assert.Equal(500m, profile.MonthlyInvestmentContributions);
+        Assert.Equal(7m, profile.InvestmentInterestRate);
+        Assert.Equal(2m, profile.SavingsInterestRate);
+    }
+
+    [Fact]
+    public async Task AnalyzeSavingsGoalAsync_IncludesProjectedInvestmentHoldingsWhenProfileHasBreakdown()
+    {
+        var repository = new FakeUserProfileRepository(new UserProfile
+        {
+            AnnualSalary = 100_000m,
+            CurrentInvestments = 40_000m,
+            CurrentCashSavings = 25_000m,
+            InvestmentInterestRate = 6.5m,
+            MonthlyInvestmentContributions = 300m,
+            UseInvestmentBreakdown = true,
+            InvestmentHoldings =
+            [
+                new InvestmentHolding
+                {
+                    Category = "stocksIsa",
+                    Balance = 10_000m,
+                    AnnualReturnRate = 5m,
+                    MonthlyContribution = 100m,
+                },
+                new InvestmentHolding
+                {
+                    Category = "pension",
+                    Balance = 30_000m,
+                    AnnualReturnRate = 7m,
+                    MonthlyContribution = 200m,
+                },
+            ],
+        });
+
+        var service = new GoalService(repository);
+
+        var result = (await service.AnalyzeSavingsGoalAsync()).Value;
+
+        Assert.NotNull(result.Breakdown.InvestmentHoldingProjections);
+        Assert.Equal(2, result.Breakdown.InvestmentHoldingProjections!.Count);
+        Assert.Equal("stocksIsa", result.Breakdown.InvestmentHoldingProjections![0].Category);
+        Assert.Equal("pension", result.Breakdown.InvestmentHoldingProjections![1].Category);
+        Assert.True(result.Breakdown.InvestmentHoldingProjections![0].ProjectedBalance > 10_000m);
+        Assert.True(result.Breakdown.InvestmentHoldingProjections![1].ProjectedBalance > 30_000m);
+    }
+
+    private sealed class FakeUserProfileRepository(UserProfile? profile) : IUserProfileRepository
+    {
+        public Task<UserProfile?> GetAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(profile);
+
+        public Task<UserProfile> SaveAsync(UserProfile updatedProfile, CancellationToken cancellationToken = default) =>
+            Task.FromResult(updatedProfile);
+    }
+}

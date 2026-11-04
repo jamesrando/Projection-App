@@ -1,0 +1,19 @@
+.salary-hero-stat {
+  margin-top: 0.75rem;
+}
+
+.salary-budget-grid {
+  margin-top: 1.25rem;
+}
+
+.salary-disclaimer,
+
+.salary-profile-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.salary-disclaimer {
+  padding: 0 0.25rem;
+}

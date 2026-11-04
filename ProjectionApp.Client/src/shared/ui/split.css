@@ -1,0 +1,98 @@
+.goal-split__bar,
+.goal-composition__bar {
+  display: flex;
+  overflow: hidden;
+  height: 0.75rem;
+  border-radius: 999px;
+  background: var(--bg);
+}
+
+.goal-split__segment,
+.goal-composition__segment {
+  height: 100%;
+}
+
+.goal-split__segment--investments,
+.goal-split__dot--investments {
+  background: var(--accent);
+}
+
+.goal-split__segment--savings,
+.goal-split__dot--savings {
+  background: var(--money);
+}
+
+.goal-split__segment--needs,
+.goal-split__dot--needs {
+  background: var(--accent);
+}
+
+.goal-split__segment--wants,
+.goal-split__dot--wants {
+  background: #a855f7;
+}
+
+.goal-split__segment--budget-savings,
+.goal-split__dot--budget-savings {
+  background: var(--money);
+}
+
+.goal-split__dot--contributions,
+.goal-composition__segment--contributions {
+  background: var(--accent);
+}
+
+.goal-split__dot--interest,
+.goal-composition__segment--interest {
+  background: var(--interest);
+}
+
+.goal-split__legend,
+.goal-composition__legend {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.goal-split__legend-item,
+.goal-composition__legend li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.goal-split__dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+}
+
+.goal-split__legend-label {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.goal-split__legend-value {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.goal-split__legend-share {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.goal-split__legend-hint {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}

@@ -1,0 +1,49 @@
+.skeleton,
+
+.skeleton-group .skeleton {
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--border) 60%, var(--surface)) 0%,
+    color-mix(in srgb, var(--border) 30%, var(--surface)) 50%,
+    color-mix(in srgb, var(--border) 60%, var(--surface)) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton {
+  height: 1rem;
+}
+
+.skeleton--title {
+  height: 1.25rem;
+  width: 40%;
+  margin-bottom: 1rem;
+}
+
+.skeleton--value {
+  height: 2rem;
+  width: 60%;
+  margin-top: 0.5rem;
+}
+
+.skeleton--card {
+  height: 12rem;
+  border-radius: 16px;
+}
+
+.skeleton-group {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
