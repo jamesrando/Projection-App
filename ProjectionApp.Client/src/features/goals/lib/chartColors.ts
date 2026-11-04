@@ -1,16 +1,15 @@
-/** Matches goal-composition / goal-split tokens in App.css and index.css */
+/** Theme tokens from index.css. SVG attributes accept these var() values. */
 export const CHART_COLORS = {
-  contributions: '#2563eb',
-  interest: '#a855f7',
-  investments: '#2563eb',
-  savings: '#047857',
-  total: '#0f172a',
-  baseline: '#94a3b8',
-  grid: '#e2e8f0',
-  muted: '#64748b',
+  investments: 'var(--accent)',
+  savings: 'var(--money)',
+  interest: 'var(--interest)',
+  goal: 'var(--text-h)',
+  baseline: 'var(--text-muted)',
+  grid: 'var(--border)',
+  muted: 'var(--text-muted)',
 } as const
 
 export const CHART_AREA_OPACITY = {
-  contributions: 0.35,
-  interest: 0.4,
+  investments: 0.88,
+  savings: 0.8,
 } as const

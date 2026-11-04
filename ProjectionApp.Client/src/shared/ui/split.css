@@ -44,7 +44,7 @@
 
 .goal-split__dot--interest,
 .goal-composition__segment--interest {
-  background: #a855f7;
+  background: var(--interest);
 }
 
 .goal-split__legend,

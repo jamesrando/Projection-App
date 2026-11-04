@@ -226,7 +226,7 @@ export function GoalResults({ result, compareBaseline, afterHero }: GoalResultsP
       {result.monthlySeries && result.monthlySeries.length > 1 && (
         <GoalPanel
           title="Growth over time"
-          description="Projected balance month by month until you reach your goal."
+          description="Investments and cash savings, stacked, until the balance reaches your goal."
           className="goal-panel--wide"
         >
           <GoalTimelineChart
